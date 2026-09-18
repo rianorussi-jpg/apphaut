@@ -91,3 +91,16 @@ El `seed.sql` solo crea categorías de tratamiento. No crea sucursales, cabinas,
 ## Siguiente etapa
 
 Las acciones de escritura administrativa (crear cita, confirmar/finalizar, cancelar, reagendar, alta/edición de tratamientos, sucursales, horarios y usuarios) requieren funciones transaccionales/políticas específicas y se incorporan después de esta base de autenticación y lectura real.
+
+## Actualización: crear citas desde Agenda
+
+Esta versión agrega creación manual de citas en `apps/admin` desde:
+
+- el botón **+ Nueva cita**;
+- clic sobre un espacio vacío de una cabina en la vista Día.
+
+Antes de usarla en Vercel, ejecuta **una sola vez** en Supabase SQL Editor la migración incremental:
+
+`supabase/migrations/20260918173000_admin_booking.sql`
+
+No vuelvas a ejecutar la migración inicial ni el seed si ya los aplicaste. La nueva función de booking valida rol administrativo, sucursal, tratamiento, plan/sesión, intervalos, horario, bloqueos, compatibilidad de cabinas y cruces de agenda en backend.
