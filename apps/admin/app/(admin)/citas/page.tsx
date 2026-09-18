@@ -1,0 +1,14 @@
+"use client";
+
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { getAppointmentViews, statusLabel, type AppointmentView } from '../../../lib/admin-data';
+
+type Tab='upcoming'|'history';
+
+export default function CitasPage(){
+  const [appointments,setAppointments]=useState<AppointmentView[]>([]); const [tab,setTab]=useState<Tab>('upcoming'); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
+  useEffect(()=>{(async()=>{try{const now=new Date(); const from=new Date(now); from.setMonth(from.getMonth()-6); const to=new Date(now); to.setFullYear(to.getFullYear()+1); setAppointments(await getAppointmentViews({from:from.toISOString(),to:to.toISOString(),limit:500}));}catch(e){setError(e instanceof Error?e.message:'No se pudieron cargar las citas.')}finally{setLoading(false)}})()},[]);
+  const now=Date.now(); const visible=useMemo(()=>appointments.filter((a)=>tab==='upcoming'?new Date(a.endsAt).getTime()>=now && !['completed','cancelled','no_show'].includes(a.status):new Date(a.endsAt).getTime()<now || ['completed','cancelled','no_show'].includes(a.status)).sort((a,b)=>tab==='upcoming'?+new Date(a.startsAt)-+new Date(b.startsAt):+new Date(b.startsAt)-+new Date(a.startsAt)),[appointments,tab,now]);
+  return <section className="page-stack"><div className="section-heading page-heading"><div><p className="eyebrow">Reservas</p><h2>Todas las citas</h2><p className="muted">Información real obtenida de Supabase.</p></div></div><div className="segmented tabs"><button className={tab==='upcoming'?'active':''} onClick={()=>setTab('upcoming')}>Próximas</button><button className={tab==='history'?'active':''} onClick={()=>setTab('history')}>Historial</button></div>{error&&<div className="alert error-alert">{error}</div>}{loading?<div className="fullscreen-inline"><div className="spinner"/><span>Cargando citas…</span></div>:visible.length?<div className="table-card"><div className="data-table data-table-head appointments-table"><span>Fecha</span><span>Cliente</span><span>Tratamiento</span><span>Sucursal / Cabina</span><span>Estado</span><span/></div>{visible.map((a)=><Link href={`/citas/${a.id}`} className="data-table appointments-table" key={a.id}><span><strong>{new Date(a.startsAt).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}</strong><small>{new Date(a.startsAt).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</small></span><span>{a.clientName}</span><span>{a.treatmentName}{a.totalSessions&&a.totalSessions>1&&<small>Sesión {a.sessionNumber} de {a.totalSessions}</small>}</span><span>{a.branchName}<small>{a.cabinName}</small></span><span><i className={`status-chip status-${a.status}`}>{statusLabel(a.status)}</i></span><span>→</span></Link>)}</div>:<div className="empty-state large-empty"><strong>No hay citas en esta sección.</strong><span>Las reservas aparecerán aquí automáticamente.</span></div>}</section>
+}

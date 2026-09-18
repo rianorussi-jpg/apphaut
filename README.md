@@ -1,67 +1,93 @@
-# Haut Clinical — Admin + Cliente Web
+# Haut Clinical — Admin + Mobile Web
 
-Este repositorio contiene dos aplicaciones web independientes listas para desplegar desde el mismo repositorio de GitHub a dos proyectos distintos de Vercel.
+Repositorio preparado para GitHub + Vercel + Supabase Cloud.
 
 ## Estructura
 
-- `apps/admin` — panel administrativo Next.js
-- `apps/mobile` — experiencia del cliente responsive Next.js (preview web; no Expo/Capacitor por ahora)
-- `supabase` — esquema, migraciones, seed y config del backend
+- `apps/admin`: panel administrativo Next.js. Fase 3: login real, rol, dashboard, agenda y módulos de lectura conectados a Supabase.
+- `apps/mobile`: app web responsive del cliente. Se mantiene como la entrega anterior y se continuará después.
+- `supabase`: esquema, RLS, seed y configuración versionada.
 
-## Supabase
+## No vuelvas a ejecutar el SQL inicial si ya lo corriste
 
-Primero ejecuta en Supabase SQL Editor:
+Si en tu proyecto Supabase ya ejecutaste:
 
 1. `supabase/migrations/20260918140000_initial_schema.sql`
 2. `supabase/seed.sql`
 
-`supabase/config.toml` se conserva en el repositorio y no se ejecuta en SQL Editor.
+no necesitas repetirlos para esta entrega. Esta fase no agrega una migración nueva.
 
-## Variables de entorno
+## Usuario administrador
 
-En AMBOS proyectos de Vercel usa los mismos nombres y valores:
+El login del admin usa Supabase Auth y valida `public.user_roles`.
+
+El usuario debe existir en `Authentication > Users` y tener, por ejemplo:
+
+```sql
+insert into public.user_roles (user_id, role)
+values ('UUID_DEL_USUARIO', 'superadmin');
+```
+
+Si ya lo hiciste, no lo repitas.
+
+## Vercel — Admin
+
+Crea/importa un proyecto desde el repositorio de GitHub.
+
+- Root Directory: `apps/admin`
+- Framework Preset: `Next.js`
+- Build Command: Default
+- Output Directory: Default (NO `public`)
+- Install Command: Default
+
+Variables:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://TU-PROYECTO.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-No expongas una `service_role` ni una secret key como `NEXT_PUBLIC_*`.
+Al abrir el deployment, `/` redirige a `/dashboard`; si no hay sesión, el panel envía a `/login`.
 
-## Deploy en Vercel
+## Vercel — Mobile web
 
-Crea dos proyectos en Vercel apuntando al mismo repositorio de GitHub.
-
-### Proyecto 1 — Admin
-
-- Root Directory: `apps/admin`
-- Framework Preset: Next.js (autodetect)
-- Build Command: dejar automático
-- Install Command: dejar automático
-- Variables: las dos `NEXT_PUBLIC_SUPABASE_*`
-
-### Proyecto 2 — Cliente
+Crea un segundo proyecto de Vercel apuntando al mismo repositorio:
 
 - Root Directory: `apps/mobile`
-- Framework Preset: Next.js (autodetect)
-- Build Command: dejar automático
-- Install Command: dejar automático
-- Variables: las mismas dos `NEXT_PUBLIC_SUPABASE_*`
+- Framework Preset: `Next.js`
+- Build/Output/Install: Default
 
-No existe Expo ni React Native en este repositorio. `apps/mobile` es una web responsive para poder revisar el producto en Vercel. La decisión sobre empaquetado nativo se tomará después.
+Variables:
 
-## Navegación del cliente
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://TU-PROYECTO.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
 
-La barra inferior es:
+## Qué ya funciona en el admin
 
-- Inicio
-- Tratamientos
-- Mis tratamientos
-- Mis citas
-- Perfil
+- Login con correo/contraseña de Supabase Auth.
+- Validación del rol `superadmin`, `branch_admin` o `reception`.
+- Persistencia de sesión de Supabase en navegador.
+- Cerrar sesión.
+- Navegación real por URLs.
+- Dashboard con conteos reales de sucursales, citas y planes activos.
+- Agenda Día y Semana.
+- Selector de sucursal, fecha, Hoy, anterior/siguiente.
+- Columnas dinámicas según las cabinas reales de la sucursal.
+- Bloques de cita según duración.
+- Detalle de cita.
+- Listado de citas Próximas/Historial.
+- Clientes derivados de planes reales.
+- Tratamientos reales.
+- Sucursales/cabinas reales.
+- Horarios y bloqueos reales.
+- RLS continúa siendo la capa de seguridad de datos.
 
-`Reservar` no es un tab. Es un flujo contextual que se abre desde Tratamientos o Mis tratamientos.
+## Importante sobre datos vacíos
 
-## Estado actual
+El `seed.sql` solo crea categorías de tratamiento. No crea sucursales, cabinas, tratamientos ni citas ficticias. Si todavía no has cargado datos operativos reales en Supabase, el panel mostrará `0` o estados vacíos. Eso confirma que ya no está usando datos hardcodeados.
 
-Esta entrega mantiene la Fase 2: estructura web, navegación, Supabase preparado y wireframes funcionales. La autenticación real (incluido login del superadmin) corresponde a la Fase 3.
+## Siguiente etapa
+
+Las acciones de escritura administrativa (crear cita, confirmar/finalizar, cancelar, reagendar, alta/edición de tratamientos, sucursales, horarios y usuarios) requieren funciones transaccionales/políticas específicas y se incorporan después de esta base de autenticación y lectura real.
