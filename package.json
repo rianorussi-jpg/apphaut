@@ -1,0 +1,14 @@
+{
+  "name": "haut-clinical",
+  "version": "0.2.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev:admin": "npm --prefix apps/admin run dev",
+    "build:admin": "npm --prefix apps/admin run build",
+    "dev:mobile": "npm --prefix apps/mobile run dev",
+    "build:mobile": "npm --prefix apps/mobile run build"
+  }
+}
