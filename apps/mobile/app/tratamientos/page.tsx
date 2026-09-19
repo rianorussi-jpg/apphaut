@@ -1,13 +1,10 @@
-import Link from 'next/link';
-import { MobileShell } from '@/components/MobileShell';
-
-const items = [
-  ['hydrafacial','Hydrafacial','Facial','60 min · 1 sesión'],
-  ['corporal-x','Tratamiento corporal X','Corporal','60 min · 6 sesiones'],
-  ['depilacion','Depilación','Depilación','45 min · 6 sesiones'],
-  ['facial-premium','Facial Premium','Facial','75 min · 1 sesión'],
-];
-export default function TreatmentsPage(){return <MobileShell title="Tratamientos">
-  <div className="chips"><span className="chip active">Todos</span><span className="chip">Favoritos</span><span className="chip">Faciales</span><span className="chip">Corporales</span><span className="chip">Depilación</span></div>
-  <div className="catalog-grid">{items.map(([id,name,cat,meta])=><Link key={id} href={`/tratamientos/${id}`} className="treatment-card"><div className="image-placeholder">{name.slice(0,1)}</div><div className="body"><p>{cat}</p><h3>{name}</h3><p>{meta}</p></div></Link>)}</div>
-</MobileShell>}
+'use client';
+import {useMemo,useState} from 'react';
+import {MobileShell} from '@/components/MobileShell';import {useClient} from '@/components/ClientProvider';import {TreatmentTile} from '@/components/TreatmentTile';
+export default function TreatmentsPage(){const {data}=useClient();const [category,setCategory]=useState('all');
+ const items=useMemo(()=>data?.treatments.filter(t=>(category==='all'||category==='featured'&&t.is_featured||category===t.category_id))??[],[data,category]);
+ return <MobileShell title="Tratamientos"><p className="subtle">Explora nuestro catálogo. Para más detalles puedes solicitar información por WhatsApp.</p>
+ <div className="chips"><button onClick={()=>setCategory('all')} className={`chip ${category==='all'?'active':''}`}>Todos</button><button onClick={()=>setCategory('featured')} className={`chip ${category==='featured'?'active':''}`}>Favoritos</button>{data?.categories.map(c=><button key={c.id} className={`chip ${category===c.id?'active':''}`} onClick={()=>setCategory(c.id)}>{c.name}</button>)}</div>
+ {items.length?<div className="catalog-grid">{items.map(t=><TreatmentTile key={t.id} treatment={t}/>)}</div>:<div className="empty-card">No hay tratamientos disponibles en esta categoría por el momento.</div>}
+ </MobileShell>;
+}

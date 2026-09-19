@@ -1,10 +1,14 @@
-import Link from 'next/link';
-import { MobileShell } from '@/components/MobileShell';
-export default function PlanDetail(){return <MobileShell title="Mi tratamiento">
-  <h2 className="detail-title">Tratamiento corporal X</h2><div className="meta-row"><span>2 / 6 sesiones</span><span>•</span><span>En progreso</span></div>
-  <article className="card"><p>Inicio</p><h3>10 septiembre 2026</h3><p>Intervalo recomendado · 7 días</p></article>
-  <div className="section-title"><h2>Próxima sesión</h2></div>
-  <article className="card"><h3>24 septiembre · 4:00 PM</h3><p>Haut Juriquilla · Sesión 3 de 6</p><Link className="secondary-button" href="/mis-citas/demo">Ver próxima cita</Link></article>
-  <div className="section-title"><h2>Sesiones</h2></div>
-  {[['1','Finalizada','10 Sep'],['2','Finalizada','17 Sep'],['3','Próxima','24 Sep · 4:00 PM'],['4','Pendiente',''],['5','Pendiente',''],['6','Pendiente','']].map(([n,s,d],i)=><div className={`session ${i<2?'done':''}`} key={n}><div className="session-number">{i<2?'✓':n}</div><div><strong>Sesión {n} · {s}</strong><span>{d}</span></div></div>)}
-</MobileShell>}
+'use client';
+import Link from 'next/link';import {useParams} from 'next/navigation';
+import {MobileShell} from '@/components/MobileShell';import {useClient} from '@/components/ClientProvider';
+import {completedCount,dateLabel,justDate,statusLabel,treatmentFor,upcomingForPlan} from '@/lib/client-data';
+export default function PlanDetail(){const {planId}=useParams<{planId:string}>();const {data}=useClient();const plan=data?.plans.find(p=>p.id===planId);
+ if(!data||!plan)return <MobileShell title="Mi tratamiento"><div className="empty-card">{data?'No encontramos este plan.':'Cargando…'}</div></MobileShell>;
+ const t=treatmentFor(data,plan);const completed=completedCount(data,plan);const upcoming=upcomingForPlan(data,plan);const branch=data.branches.find(b=>b.id===plan.default_branch_id);
+ return <MobileShell title="Mi tratamiento"><Link href="/mis-tratamientos" className="muted-link">← Mis tratamientos</Link><h2 className="detail-title">{t?.name||'Tratamiento'}</h2>
+ <div className="meta-row"><span>{completed} de {plan.total_sessions} sesiones realizadas</span><span>·</span><span>{statusLabel(plan.status)}</span></div><div className="progress-track"><div className="progress-fill" style={{width:`${100*completed/plan.total_sessions}%`}}/></div>
+ <article className="card"><p>Inicio: {plan.started_at?justDate(plan.started_at):justDate(plan.created_at)}</p><p>Sucursal: Haut {branch?.name??'Por definir'}</p><p>Pendientes: {plan.total_sessions-completed}</p>{plan.recommended_interval_days!=null&&<p>Intervalo recomendado: {plan.recommended_interval_days} días</p>}</article>
+ <div className="section-title"><h2>Próxima sesión</h2></div>{upcoming?<article className="card"><h3>{dateLabel(upcoming.starts_at,true)}</h3><p>Haut {data.branches.find(b=>b.id===upcoming.branch_id)?.name||'Sucursal'}</p><Link href={`/mis-citas/${upcoming.id}`} className="secondary-button">Ver próxima cita</Link></article>:<div className="empty-card">{completed===plan.total_sessions?'Tu tratamiento ya está finalizado.':'Todavía no tienes otra cita agendada. Comunícate con Haut para programar tu próxima sesión.'}</div>}
+ <div className="section-title"><h2>Historial de sesiones</h2></div>{data.sessions.filter(s=>s.plan_id===plan.id&&s.status!=='voided').sort((a,b)=>a.session_number-b.session_number).map(s=>{const ap=data.appointments.filter(a=>a.plan_session_id===s.id).sort((a,b)=>b.starts_at.localeCompare(a.starts_at));const live=ap.find(a=>['pending','confirmed','arrived'].includes(a.status));const last=live||ap.find(a=>a.status==='completed');return <div className={`session ${s.status==='completed'?'done':''}`} key={s.id}><div className="session-number">{s.status==='completed'?'✓':s.session_number}</div><div><strong>Sesión {s.session_number} · {statusLabel(s.status)}</strong><span>{s.completed_at?justDate(s.completed_at):last?dateLabel(last.starts_at):'Sin cita agendada'}</span>{last&&<p><Link className="muted-link" href={`/mis-citas/${last.id}`}>Ver cita →</Link></p>}</div></div>})}
+ </MobileShell>;
+}
