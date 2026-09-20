@@ -2,9 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import {fetchBookingClients, type BookingClient} from '../lib/client-directory';
 
 type Branch = { id: string; name: string };
-type Client = { id: string; full_name: string; phone: string | null; email: string | null };
+type Client = BookingClient;
 type Treatment = {
   id: string;
   name: string;
@@ -74,13 +75,12 @@ export default function NewAppointmentModal({
     async function loadClients() {
       if (!open || !supabase) return;
       setLoadingOptions(true);
-      const { data, error: clientsError } = await supabase.rpc('admin_booking_clients');
-      if (clientsError) {
-        setError(clientsError.message);
-      } else {
-        const rows = (data ?? []) as Client[];
+      try {
+        const rows = await fetchBookingClients();
         setClients(rows);
         setClientId((current) => current && rows.some((item) => item.id === current) ? current : (rows[0]?.id ?? ''));
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'No se pudo cargar el directorio de clientes.');
       }
       setLoadingOptions(false);
     }

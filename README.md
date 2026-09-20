@@ -98,3 +98,17 @@ Después de ingresar, el cliente ve sus datos **reales** en Supabase: próximas 
 - `supabase/seed.sql`: categorías de ejemplo; no crea datos comerciales ficticios.
 
 Para desarrollo local opcional: `cd apps/admin && npm install && npm run dev` o `cd apps/mobile && npm install && npm run dev`, cada app con las variables en su propio `.env.local` (no subas ese archivo a GitHub).
+
+## Actualización 2026-09-20 — Clientes y editor visual de tratamientos
+
+Esta entrega conserva las dos aplicaciones Next.js existentes (`apps/admin`, `apps/mobile`), el catálogo, citas y planes, y no vuelve a ejecutar las migraciones anteriores. Para el **mismo proyecto Supabase de HAUT**, ejecutar **solo** `supabase/migrations/20260920150000_client_directory_and_catalog_editor.sql` desde SQL Editor **antes de usar el editor o volver a abrir el directorio**. El archivo incluye `begin/commit`: en caso de error no es necesario ejecutar comandos de limpieza manuales.
+
+La migración rellena solamente perfiles de usuarios existentes que falten (sin modificar perfiles actuales), vuelve a publicar la función `admin_booking_clients` con comprobación de rol/sucursal y habilita inserción/edición de fichas y vínculos de sucursales/cabinas **exclusivamente para superadmin por RLS**. No modifica citas, planes, sesiones ni recompensas.
+
+Admin → Clientes y Agenda → Nueva cita consultan la misma función. Si algo falla, ahora muestran el mensaje específico de Supabase y el directorio no desaparece si solo falla la consulta secundaria de planes o tratamientos. Los administradores de sucursal/recepción ven únicamente clientes asociados a sucursales autorizadas; el superadmin ve los clientes sin rol administrativo.
+
+Admin → Tratamientos: la lista inicial no muestra el formulario. «+ Agregar nuevo tratamiento» o «Editar tratamiento» abren un editor con foto, categoría, precio, duración, sesiones, intervalo, favoritos, estado y sucursales/cabinas. El editor permite subir archivos JPG/PNG/WebP/AVIF de hasta 10 MB al bucket público **`treatment-images`** ya creado por la migración inicial; la URL pública queda en `treatments.image_url` y Mobile la muestra al recargar. Los registros sin foto dicen «Fotografía pendiente» en vez de «HAUT». No uses `service_role` ni nuevas variables de entorno para Storage.
+
+Si un tratamiento está asignado a citas/planes existentes, editar sus valores predeterminados no altera los valores históricos guardados en el plan/sesión/cita. No desactives relaciones de sucursal/cabina que se necesiten para futuras reservas.
+
+Vercel: ambos proyectos siguen apuntando al **mismo repositorio**, con directorios raíz `apps/admin` y `apps/mobile` respectivamente. Esta actualización no requiere cambiar las variables Supabase. No vuelvas a correr la migración inicial, `seed.sql` ni el SQL del catálogo.
