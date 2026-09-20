@@ -1,3 +1,9 @@
+# HAUT Clinical · Admin + Mobile Web
+
+**Renovación visual y de experiencia (20 de septiembre de 2026):** esta versión incluye carrusel de promociones en Inicio, menú con iconos, fichas de tratamientos, citas, planes, Rewards, perfil y panel Admin renovados. La administración de promociones permite subir fotografía y vincular un tratamiento usando el bucket de imágenes existente. **Si ya tienes las migraciones previas aplicadas, no ejecutes ningún SQL nuevo ni vuelvas a correr el seed.** Reemplaza el código en GitHub y Vercel publicará los dos proyectos. Consulta `REDESIGN_NOTES.md` para los cambios y límites de validación.
+
+---
+
 # Haut Clinical — Admin + app web de clientes
 
 ## Actualización del catálogo (20 de septiembre de 2026)

@@ -4,18 +4,19 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import {Icon,type IconName} from './Icon';
 
-const navigation = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/agenda', label: 'Agenda' },
-  { href: '/citas', label: 'Citas' },
-  { href: '/clientes', label: 'Clientes' },
-  { href: '/promociones', label: 'Promociones' },
-  { href: '/tratamientos', label: 'Tratamientos' },
-  { href: '/sucursales', label: 'Sucursales y cabinas' },
-  { href: '/horarios', label: 'Horarios y bloqueos' },
-  { href: '/usuarios', label: 'Usuarios y permisos' },
-  { href: '/configuracion', label: 'Configuración' },
+const navigation: {href:string;label:string;icon:IconName}[] = [
+  { href: '/dashboard', label: 'Inicio', icon: 'home' },
+  { href: '/agenda', label: 'Agenda', icon: 'calendar' },
+  { href: '/citas', label: 'Citas', icon: 'clock' },
+  { href: '/clientes', label: 'Clientes', icon: 'user' },
+  { href: '/promociones', label: 'Promociones', icon: 'gift' },
+  { href: '/tratamientos', label: 'Tratamientos', icon: 'sparkles' },
+  { href: '/sucursales', label: 'Sucursales y cabinas', icon: 'pin' },
+  { href: '/horarios', label: 'Horarios y bloqueos', icon: 'sliders' },
+  { href: '/usuarios', label: 'Usuarios y permisos', icon: 'shield' },
+  { href: '/configuracion', label: 'Configuración', icon: 'sliders' },
 ];
 
 const titles: Record<string, string> = {
@@ -100,27 +101,27 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     <div className="admin-shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
         <div>
-          <div className="brand">HAUT <span>CLINICAL</span></div>
-          <p className="eyebrow sidebar-eyebrow">Administración</p>
+          <Link href="/dashboard" className="brand brand-link" onClick={() => setMenuOpen(false)}>HAUT <span>CLINICAL</span></Link>
+          <p className="eyebrow sidebar-eyebrow">CLINICAL CENTER · ADMIN</p>
           <nav className="sidebar-nav">
             {navigation.map((item) => {
               const active = pathname === item.href || pathname.startsWith(item.href + '/');
-              return <Link key={item.href} className={active ? 'active' : ''} href={item.href} onClick={() => setMenuOpen(false)}>{item.label}</Link>;
+              return <Link key={item.href} className={active ? 'active' : ''} href={item.href} onClick={() => setMenuOpen(false)}><span className="sidebar-nav-icon"><Icon name={item.icon} size={18}/></span><span>{item.label}</span>{active&&<span className="sidebar-nav-active-indicator"/>}</Link>;
             })}
           </nav>
         </div>
         <div className="staff-card">
           <div className="staff-avatar">{staff?.name.slice(0, 2).toUpperCase()}</div>
           <div className="staff-copy"><strong>{staff?.name}</strong><span>{roleLabel}</span></div>
-          <button className="text-button" onClick={logout}>Salir</button>
+          <button className="text-button" onClick={logout} aria-label="Cerrar sesión"><Icon name="logout" size={16}/></button>
         </div>
       </aside>
 
       <main className="content">
         <header className="topbar">
-          <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú">☰</button>
+          <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen?'Cerrar menú':'Abrir menú'}><Icon name={menuOpen?'back':'sliders'} size={20}/></button>
           <div>
-            <p className="eyebrow">HAUT CLINICAL</p>
+            <p className="eyebrow">HAUT · ADMINISTRACIÓN</p>
             <h1>{sectionTitle}</h1>
           </div>
           <div className="topbar-user">

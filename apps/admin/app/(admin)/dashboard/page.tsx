@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getAppointmentViews, statusLabel } from '../../../lib/admin-data';
 import { supabase } from '../../../lib/supabase';
+import {Icon} from '../../../components/Icon';
 
 type Stats = { branches: number; today: number; tomorrow: number; week: number; activePlans: number };
 
@@ -55,9 +56,9 @@ export default function DashboardPage() {
     <>
       <section className="hero compact-hero">
         <div>
-          <span className="pill live-pill">● Datos en vivo</span>
-          <h2>Operación de Haut Clinical</h2>
-          <p>El panel ya está leyendo la información autorizada directamente desde tu proyecto de Supabase.</p>
+          <span className="pill live-pill">● ACTIVIDAD EN TIEMPO REAL</span>
+          <h2>Bienvenido a tu espacio HAUT</h2>
+          <p>Todo lo que necesitas para acompañar a tus clientes y organizar la operación de cada sucursal.</p>
         </div>
         <div className="hero-stat"><strong>{loading ? '…' : stats.branches}</strong><span>Sucursales activas</span></div>
       </section>
@@ -90,10 +91,10 @@ export default function DashboardPage() {
         <section className="panel-card">
           <div className="section-heading"><div><p className="eyebrow">Accesos</p><h3>Operación</h3></div></div>
           <div className="quick-links">
-            <Link href="/agenda"><strong>Agenda</strong><span>Calendario por cabina →</span></Link>
-            <Link href="/clientes"><strong>Clientes</strong><span>Directorio y planes →</span></Link>
-            <Link href="/tratamientos"><strong>Tratamientos</strong><span>Catálogo y sesiones →</span></Link>
-            <Link href="/sucursales"><strong>Sucursales</strong><span>Cabinas y recursos →</span></Link>
+            <Link href="/agenda"><span className="dashboard-quick-icon"><Icon name="calendar" size={19}/></span><strong>Agenda</strong><span>Consulta horarios y organiza tus citas <Icon name="forward" size={14}/></span></Link>
+            <Link href="/clientes"><span className="dashboard-quick-icon"><Icon name="user" size={19}/></span><strong>Clientes</strong><span>Gestiona perfiles y tratamientos <Icon name="forward" size={14}/></span></Link>
+            <Link href="/tratamientos"><span className="dashboard-quick-icon"><Icon name="sparkles" size={19}/></span><strong>Tratamientos</strong><span>Administra el catálogo y sus imágenes <Icon name="forward" size={14}/></span></Link>
+            <Link href="/sucursales"><span className="dashboard-quick-icon"><Icon name="pin" size={19}/></span><strong>Sucursales</strong><span>Revisa cabinas y recursos <Icon name="forward" size={14}/></span></Link>
           </div>
         </section>
       </div>
