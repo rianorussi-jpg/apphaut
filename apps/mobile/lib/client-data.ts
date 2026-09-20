@@ -6,8 +6,8 @@ export async function loadClientData(userId:string):Promise<ClientData>{
   const [profile,branches,treatments,categories,plans,appointments,offers,rewards,availability,balance] = await Promise.all([
     supabase.from('profiles').select('id,full_name,phone,preferred_branch_id').eq('id',userId).maybeSingle(),
     supabase.from('branches').select('id,name,slug,phone,address').eq('is_active',true).order('name'),
-    supabase.from('treatments').select('id,name,category_id,description,short_description,image_url,base_price,default_duration_minutes,default_session_count,is_featured,recommendations,contraindications').eq('is_active',true).order('name'),
-    supabase.from('treatment_categories').select('id,name,sort_order').eq('is_active',true).order('sort_order'),
+    supabase.from('treatments').select('id,name,category_id,description,short_description,image_url,base_price,default_duration_minutes,default_session_count,is_featured,catalog_details_pending,recommendations,contraindications').eq('is_active',true).order('name'),
+    supabase.from('treatment_categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
     supabase.from('client_treatment_plans').select('id,treatment_id,client_id,default_branch_id,total_sessions,status,started_at,recommended_interval_days,created_at').eq('client_id',userId).order('created_at',{ascending:false}),
     supabase.from('appointments').select('id,plan_session_id,branch_id,starts_at,ends_at,status').order('starts_at',{ascending:false}).limit(500),
     supabase.from('promotions').select('id,title,description,image_url,treatment_id,branch_id').order('sort_order').limit(100),

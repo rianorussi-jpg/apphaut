@@ -121,6 +121,7 @@ export default function NewAppointmentModal({
         .select('id, name, default_duration_minutes, default_session_count, base_price')
         .in('id', ids)
         .eq('is_active', true)
+        .eq('catalog_details_pending', false)
         .order('name');
 
       if (treatmentError) {

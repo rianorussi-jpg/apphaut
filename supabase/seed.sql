@@ -1,14 +1,10 @@
--- Datos de desarrollo controlados.
--- “Favoritos” NO se crea como categoría: se representa mediante treatments.is_featured.
-
+-- Categorías oficiales HAUT para instalaciones nuevas.
+-- Ejecutar sólo al preparar una base nueva; para una base existente usar
+-- supabase/migrations/20260920090000_catalogo_haut.sql.
+-- "Todos" y "Favoritos" son filtros de la app; no son categorías SQL.
 insert into public.treatment_categories (name, slug, sort_order)
 values
-  ('Faciales', 'faciales', 10),
+  ('Depilación láser', 'depilacion-laser', 10),
   ('Corporales', 'corporales', 20),
-  ('Depilación', 'depilacion', 30),
-  ('Aparatología', 'aparatologia', 40),
-  ('Otros', 'otros', 50)
+  ('Faciales', 'faciales', 30)
 on conflict (slug) do nothing;
-
--- No se crean sucursales ficticias. Las sucursales reales de Haut se cargarán
--- cuando se confirme su información operativa.

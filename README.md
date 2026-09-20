@@ -1,5 +1,36 @@
 # Haut Clinical — Admin + app web de clientes
 
+## Actualización del catálogo (20 de septiembre de 2026)
+
+**Solo en tu proyecto real de Supabase de HAUT**, abre SQL Editor y ejecuta **únicamente** el archivo nuevo
+`supabase/migrations/20260920090000_catalogo_haut.sql`, después de tener aplicadas tus
+migraciones anteriores. **No repitas** `initial_schema.sql`, `admin_booking.sql`,
+`client_app.sql` ni `seed.sql` sobre una base que ya está en uso. Esta actualización es
+transaccional y no borra citas, planes ni usuarios existentes.
+
+Después sube este repositorio a GitHub; Vercel actualizará sus dos proyectos:
+`apps/admin` y `apps/mobile`. No se necesitan variables de entorno nuevas.
+
+El catálogo del cliente mostrará **Todos, Favoritos, Depilación láser, Corporales y
+Faciales**. Las tres categorías reales son Depilación láser, Corporales y Faciales;
+Favoritos es un filtro de `treatments.is_featured`. La migración agrega hasta 17 tratamientos
+sin duplicar los que ya tienen el mismo slug/nombre y fija como favoritos *Limpieza facial,
+Cavitación y Hollywood peel*. Los tratamientos que ya existían conservan sus precios,
+sesiones y duración. Otras categorías anteriores quedan inactivas, pero sus tratamientos,
+citas y planes no se borran.
+
+**No se proporcionaron precios, duración ni cantidad de sesiones para los 17 tratamientos.**
+Los registros **nuevos** se cargan con valores operativos provisionales (`0 MXN`, `60 min`,
+`1 sesión`) y `catalog_details_pending = true`. La app **no muestra esos valores**; muestra
+"por confirmar" y permite *Solicitar información* por WhatsApp. En Admin → Tratamientos,
+usa **Configurar / editar datos** para completar sus datos reales. Mientras están pendientes,
+no pueden asignarse a clientes ni reservarse. Confirmar esos datos no asigna automáticamente
+cabinas o sucursales: eso deberá configurarse con información real de HAUT antes de agendar.
+
+Para nuevas instalaciones, `seed.sql` ya contiene únicamente las tres categorías oficiales;
+los tratamientos se insertan con esta nueva migración. Si aún no has aplicado las otras
+migraciones en una instalación nueva, hazlo en orden cronológico.
+
 Este proyecto contiene dos aplicaciones web **Next.js independientes**, preparadas para desplegarse en **dos proyectos de Vercel** desde un único repositorio de GitHub. No utiliza Expo ni Capacitor.
 
 ## 1. Actualizar Supabase existente (solo una vez)

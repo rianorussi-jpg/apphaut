@@ -10,7 +10,7 @@ export default function ClientesPage(){
  const [clientId,setClientId]=useState('');const [branchId,setBranchId]=useState('');const[treatmentId,setTreatmentId]=useState('');const [count,setCount]=useState('');const[rewardPoints,setRewardPoints]=useState('');const[rewardReason,setRewardReason]=useState('');
  const[error,setError]=useState('');const[success,setSuccess]=useState('');const[saving,setSaving]=useState(false);const[loading,setLoading]=useState(true);
  const reload=useCallback(async()=>{if(!supabase){setError('Falta configurar Supabase.');setLoading(false);return;}try{const [c,b,t,p]=await Promise.all([
-  supabase.rpc('admin_booking_clients'),supabase.from('branches').select('id,name').eq('is_active',true).order('name'),supabase.from('treatments').select('id,name,default_session_count').eq('is_active',true).order('name'),supabase.from('client_treatment_plans').select('id,client_id,status,treatment_id,total_sessions')]);
+  supabase.rpc('admin_booking_clients'),supabase.from('branches').select('id,name').eq('is_active',true).order('name'),supabase.from('treatments').select('id,name,default_session_count').eq('is_active',true).eq('catalog_details_pending',false).order('name'),supabase.from('client_treatment_plans').select('id,client_id,status,treatment_id,total_sessions')]);
   for(const r of [c,b,t,p])if(r.error)throw r.error;
   setClients(c.data??[]);setBranches(b.data??[]);setTreatments(t.data??[]);setPlans(p.data??[]);
  }catch(e){setError(e instanceof Error?e.message:'No pudimos cargar clientes.');}finally{setLoading(false);}},[]);
