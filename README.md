@@ -1,5 +1,16 @@
 # HAUT Clinical · Admin + Mobile Web
 
+## Actualización: carrusel fotográfico y encuadre de promociones (20 sep 2026)
+
+- **Mobile → Inicio:** banner con la fotografía completa sin oscurecer, sin título ni descripción superpuestos, flechas e indicadores, y cambio automático cada 5 segundos. El botón **Ver promoción** va debajo de la imagen y abre el detalle de la promoción. La app muestra después **Mis tratamientos → Tu próxima cita → Para descubrir**; se quitaron los accesos rápidos y la tarjeta de Rewards intermedia de Inicio (Rewards sigue disponible en Perfil).
+- **Admin → Promociones:** nuevo botón **Editar** en cada promoción; permite modificar título, descripción, tratamiento relacionado e imagen sin crear registros duplicados. El editor permite zoom (1–3×), arrastrar, desplazar y previsualizar el encuadre real 16:9. La fotografía se guarda recortada como WebP de **1200 × 675 px** en el bucket `treatment-images`. Las imágenes anteriores permanecen igual hasta que se editen.
+- **Sin SQL nuevo:** se utiliza `promotions.image_url`, los permisos y el bucket existentes. No vuelvas a correr migraciones ni `seed.sql`. No se necesitan variables de entorno adicionales.
+- Sube el proyecto completo a GitHub para actualizar los dos despliegues de Vercel: `apps/admin` y `apps/mobile`. Mantén sus variables de Supabase existentes.
+- Para imágenes alojadas en servidores externos que impidan exportarlas desde el navegador (CORS), **vuelve a seleccionar el archivo desde tu computadora** antes de guardar un nuevo encuadre.
+
+---
+
+
 **Renovación visual y de experiencia (20 de septiembre de 2026):** esta versión incluye carrusel de promociones en Inicio, menú con iconos, fichas de tratamientos, citas, planes, Rewards, perfil y panel Admin renovados. La administración de promociones permite subir fotografía y vincular un tratamiento usando el bucket de imágenes existente. **Si ya tienes las migraciones previas aplicadas, no ejecutes ningún SQL nuevo ni vuelvas a correr el seed.** Reemplaza el código en GitHub y Vercel publicará los dos proyectos. Consulta `REDESIGN_NOTES.md` para los cambios y límites de validación.
 
 ---
