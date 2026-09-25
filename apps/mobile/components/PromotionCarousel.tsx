@@ -21,9 +21,7 @@ export function PromotionCarousel({promotions}:{promotions:Promotion[]}){
     <div className="promo-photo-stage">
       {offer.image_url?<img key={offer.id} className="promo-full-image" src={offer.image_url} alt={`Imagen de la promoción: ${offer.title}`} loading={index===0?'eager':'lazy'}/>:<div className="promo-photo-empty"><Icon name="image" size={32}/><span>Promoción HAUT</span></div>}
       {length>1&&<><button type="button" className="promo-photo-arrow previous" aria-label="Promoción anterior" onClick={()=>setIndex(i=>(i-1+length)%length)}><Icon name="back" size={20}/></button><button type="button" className="promo-photo-arrow next" aria-label="Promoción siguiente" onClick={()=>setIndex(i=>(i+1)%length)}><Icon name="forward" size={20}/></button></>}
-    </div>
-    <div className="promo-photo-footer">
-      <div className="promo-photo-dots" aria-label="Seleccionar promoción">{promotions.map((p,i)=><button key={p.id} type="button" className={i===index?'selected':''} aria-label={`Ver promoción ${i+1} de ${length}`} aria-current={i===index?'true':undefined} onClick={()=>setIndex(i)}/>)}</div>
+      {length>1&&<div className="promo-photo-dots" aria-label="Seleccionar promoción">{promotions.map((p,i)=><button key={p.id} type="button" className={i===index?'selected':''} aria-label={`Ver promoción ${i+1} de ${length}`} aria-current={i===index?'true':undefined} onClick={()=>setIndex(i)}/>)}</div>}
       <Link href={`/promociones/${offer.id}`} className="promo-view-button">Ver promoción <Icon name="arrow" size={17}/></Link>
     </div>
   </section>;
