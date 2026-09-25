@@ -129,3 +129,23 @@ Admin → Tratamientos: la lista inicial no muestra el formulario. «+ Agregar n
 Si un tratamiento está asignado a citas/planes existentes, editar sus valores predeterminados no altera los valores históricos guardados en el plan/sesión/cita. No desactives relaciones de sucursal/cabina que se necesiten para futuras reservas.
 
 Vercel: ambos proyectos siguen apuntando al **mismo repositorio**, con directorios raíz `apps/admin` y `apps/mobile` respectivamente. Esta actualización no requiere cambiar las variables Supabase. No vuelvas a correr la migración inicial, `seed.sql` ni el SQL del catálogo.
+
+## Actualización 25 Sep 2026 — continuidad de tratamientos y solicitud de cita
+
+Esta versión agrega:
+
+- Tratamientos activos visibles en **Admin → Clientes**, con progreso y próxima cita.
+- Botón **Agendar próxima cita** cuando el plan tiene una sesión habilitada y todavía no existe otra cita activa.
+- En **Agenda → Nueva cita**, después de elegir cliente aparecen primero sus tratamientos iniciados; los que ya tienen próxima cita se muestran bloqueados. También se puede iniciar un tratamiento diferente.
+- La app del cliente refleja las citas creadas por administración y refresca sus datos mientras está abierta.
+- En **Mis tratamientos → Próxima sesión**, cuando no existe cita y la siguiente sesión está habilitada, el cliente elige un día de la semana y abre WhatsApp de su sucursal con un mensaje preparado.
+- **Admin → Sucursales** permite configurar el número de WhatsApp de cada sucursal.
+- Todos los tratamientos activos quedan asociados a todas las sucursales activas. Si una combinación tratamiento+sucursal no tenía cabinas configuradas, se habilitan inicialmente todas las cabinas activas de esa sucursal para que la agenda pueda asignar una.
+
+### SQL incremental
+
+Ejecuta una sola vez en Supabase SQL Editor:
+
+`supabase/migrations/20260925004000_plan_booking_requests_all_branches.sql`
+
+No vuelvas a ejecutar las migraciones anteriores ni `seed.sql`.

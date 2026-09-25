@@ -37,9 +37,10 @@ export function ClientProvider({children}:{children:React.ReactNode}){
     if(!session?.user.id)return;
     const onFocus=()=>{void refresh();};
     const onVisible=()=>{if(document.visibilityState==='visible')void refresh();};
+    const timer=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh();},30000);
     window.addEventListener('focus',onFocus);
     document.addEventListener('visibilitychange',onVisible);
-    return ()=>{window.removeEventListener('focus',onFocus);document.removeEventListener('visibilitychange',onVisible);};
+    return ()=>{window.clearInterval(timer);window.removeEventListener('focus',onFocus);document.removeEventListener('visibilitychange',onVisible);};
   },[session?.user.id,refresh]);
   useEffect(()=>{if(session && (pathname==='/acceso'||pathname==='/registro'))router.replace('/');},[session,pathname,router]);
   async function signOut(){if(supabase)await supabase.auth.signOut();setData(null);router.replace('/acceso');}

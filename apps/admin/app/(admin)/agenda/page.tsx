@@ -168,6 +168,7 @@ export default function AgendaPage() {
         onClose={()=>setBookingOpen(false)}
         onCreated={(booking)=>{
           setBookingOpen(false);
+          if (booking.branch_id) setBranchId(booking.branch_id);
           setSelectedDate(new Date(booking.starts_at));
           setView('day');
           setSuccess(`Cita creada correctamente · ${booking.cabin_name} · sesión ${booking.session_number} de ${booking.total_sessions}.`);

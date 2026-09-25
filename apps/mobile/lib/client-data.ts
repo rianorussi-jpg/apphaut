@@ -47,3 +47,29 @@ export function whatsappHref(name:string, branchPhone?:string|null){
   const message=`Hola, me gustaría solicitar información sobre el tratamiento ${name} de Haut Clinical. ¿Me podrían ayudar?`;
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
+
+export function appointmentRequestWhatsappHref({
+  profileName,
+  treatmentName,
+  branchName,
+  branchPhone,
+  weekday,
+  sessionNumber,
+  totalSessions,
+}:{
+  profileName?:string|null;
+  treatmentName:string;
+  branchName:string;
+  branchPhone?:string|null;
+  weekday:string;
+  sessionNumber:number;
+  totalSessions:number;
+}){
+  const raw=branchPhone||'';
+  let phone=raw.replace(/\D/g,'');
+  if(phone.length===10)phone=`52${phone}`;
+  if(phone.length<10||phone.length>15)return null;
+  const name=(profileName||'').trim();
+  const message=`Hola,${name?` soy ${name}.`:''} Tengo activo el tratamiento ${treatmentName} en HAUT ${branchName} y quiero solicitar mi sesión ${sessionNumber} de ${totalSessions}. Preferiría asistir un ${weekday}. ¿Me pueden confirmar qué fechas y horarios tienen disponibles?`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
