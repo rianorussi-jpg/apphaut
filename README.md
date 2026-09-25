@@ -149,3 +149,9 @@ Ejecuta una sola vez en Supabase SQL Editor:
 `supabase/migrations/20260925004000_plan_booking_requests_all_branches.sql`
 
 No vuelvas a ejecutar las migraciones anteriores ni `seed.sql`.
+
+## Edición rápida de tratamientos
+
+En Admin → Tratamientos ahora puedes guardar una ficha con solo el **nombre** y, si quieres, una **imagen**. Categoría, descripción, precio, duración, sesiones, intervalo, sucursales y cabinas pueden completarse después.
+
+Si faltan precio, duración o número de sesiones, la ficha queda marcada como **Datos pendientes**. Se mantiene visible en el catálogo para agregar su imagen y contenido, pero no puede asignarse ni agendarse hasta completar esos tres datos operativos. No requiere una migración SQL nueva.

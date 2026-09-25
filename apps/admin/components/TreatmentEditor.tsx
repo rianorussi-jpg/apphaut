@@ -21,8 +21,8 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
  const [description,setDescription]=useState(treatment?.description??treatment?.short_description??'');
  const [categoryId,setCategoryId]=useState(treatment?.category_id??'');
  const [price,setPrice]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.base_price):'');
- const [duration,setDuration]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.default_duration_minutes):'60');
- const [sessions,setSessions]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.default_session_count):'1');
+ const [duration,setDuration]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.default_duration_minutes):'');
+ const [sessions,setSessions]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.default_session_count):'');
  const [interval,setInterval]=useState(treatment?.recommended_interval_days==null?'':String(treatment.recommended_interval_days));
  const [featured,setFeatured]=useState(treatment?.is_featured??false);
  const [active,setActive]=useState(treatment?.is_active??true);
@@ -67,11 +67,11 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
   e.preventDefault();setError('');
   if(!supabase){setError('Supabase no está configurado.');return;}
   if(loadingLinks){setError('Espera a que terminen de cargar las sucursales y cabinas.');return;}
-  if(!name.trim()||!categoryId||!price.trim()||!Number.isFinite(Number(price))||Number(price)<0||
-     !Number.isInteger(Number(duration))||Number(duration)<1||!Number.isInteger(Number(sessions))||Number(sessions)<1||
-     (interval!==''&&(!Number.isInteger(Number(interval))||Number(interval)<0))){
-   setError('Verifica nombre, categoría, precio, duración y número de sesiones.');return;
-  }
+  if(!name.trim()){setError('El nombre del tratamiento es obligatorio.');return;}
+  if(price!==''&&(!Number.isFinite(Number(price))||Number(price)<0)){setError('El precio debe ser un número válido mayor o igual a 0.');return;}
+  if(duration!==''&&(!Number.isInteger(Number(duration))||Number(duration)<1)){setError('La duración debe ser un número entero mayor a 0.');return;}
+  if(sessions!==''&&(!Number.isInteger(Number(sessions))||Number(sessions)<1)){setError('El número de sesiones debe ser un entero mayor a 0.');return;}
+  if(interval!==''&&(!Number.isInteger(Number(interval))||Number(interval)<0)){setError('El intervalo recomendado debe ser un entero mayor o igual a 0.');return;}
   if(!validBranches){setError('Selecciona por lo menos una cabina compatible en cada sucursal marcada.');return;}
   setSaving(true);
   try{
@@ -83,11 +83,17 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
      if(upload.error)throw new Error(`No se pudo subir la imagen: ${upload.error.message}. Verifica el bucket treatment-images y sus políticas.`);
      finalImageUrl=supabase.storage.from('treatment-images').getPublicUrl(path).data.publicUrl;
    }
+   const detailsPending=price===''||duration===''||sessions==='';
    const payload={
      name:name.trim(),short_description:description.trim()||null,description:description.trim()||null,
-     category_id:categoryId,base_price:Number(price),default_duration_minutes:Number(duration),
-     default_session_count:Number(sessions),recommended_interval_days:interval===''?null:Number(interval),
-     is_featured:featured,is_active:active,catalog_details_pending:false,image_url:finalImageUrl,
+     category_id:categoryId||null,
+     // La base conserva valores técnicos válidos mientras la ficha esté pendiente.
+     // Mobile/Admin no los muestran ni permiten agendar hasta completar precio, duración y sesiones.
+     base_price:price===''?(treatment?Number(treatment.base_price):0):Number(price),
+     default_duration_minutes:duration===''?(treatment?Number(treatment.default_duration_minutes):60):Number(duration),
+     default_session_count:sessions===''?(treatment?Number(treatment.default_session_count):1):Number(sessions),
+     recommended_interval_days:interval===''?null:Number(interval),
+     is_featured:featured,is_active:active,catalog_details_pending:detailsPending,image_url:finalImageUrl,
    };
    let treatmentId=treatment?.id;
    if(treatmentId){
@@ -137,7 +143,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
    <section className="treatment-editor" role="dialog" aria-modal="true" aria-labelledby="treatment-editor-title">
     <div className="treatment-editor-top"><div><p className="eyebrow">Catálogo HAUT · Administración</p>
       <h2 id="treatment-editor-title">{treatment?'Editar tratamiento':'Nuevo tratamiento'}</h2>
-      <p className="muted">Configura su ficha, imagen y disponibilidad en sucursales.</p>
+      <p className="muted">Puedes guardar ahora solo el nombre y la imagen. Completa precio, duración y sesiones cuando tengas esos datos.</p>
      </div><button type="button" className="modal-close" aria-label="Cerrar" disabled={saving} onClick={onClose}>×</button></div>
     <form onSubmit={save} className="treatment-editor-content">
      {error&&<div className="alert error-alert" role="alert">{error}</div>}
@@ -145,15 +151,15 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
       <div className="editor-section"><p className="editor-section-label">01 · Información general</p>
        <label className="form-field">Nombre del tratamiento<input required maxLength={140} value={name} onChange={e=>setName(e.target.value)} placeholder="Ej. Limpieza facial"/></label>
        <label className="form-field">Descripción<textarea rows={4} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Describe brevemente el tratamiento…"/></label>
-       <label className="form-field">Categoría<select required value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">Selecciona una categoría</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+       <label className="form-field">Categoría <small className="muted">(opcional)</small><select value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">Selecciona una categoría</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       </div>
-      <div className="editor-section"><p className="editor-section-label">02 · Precio y sesiones</p>
-       <div className="editor-two"><label className="form-field">Precio base (MXN)<input type="number" min="0" step="0.01" required value={price} onChange={e=>setPrice(e.target.value)}/></label>
-       <label className="form-field">Duración por sesión (min)<input type="number" min="1" max="600" required value={duration} onChange={e=>setDuration(e.target.value)}/></label>
-       <label className="form-field">Número de sesiones<input type="number" min="1" max="200" required value={sessions} onChange={e=>setSessions(e.target.value)}/></label>
-       <label className="form-field">Intervalo recomendado (días)<input type="number" min="0" value={interval} placeholder="Opcional" onChange={e=>setInterval(e.target.value)}/></label></div>
+      <div className="editor-section"><p className="editor-section-label">02 · Precio y sesiones <span className="muted">· opcional por ahora</span></p>
+       <div className="editor-two"><label className="form-field">Precio base (MXN) <small className="muted">(opcional)</small><input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
+       <label className="form-field">Duración por sesión (min) <small className="muted">(opcional)</small><input type="number" min="1" max="600" value={duration} onChange={e=>setDuration(e.target.value)}/></label>
+       <label className="form-field">Número de sesiones <small className="muted">(opcional)</small><input type="number" min="1" max="200" value={sessions} onChange={e=>setSessions(e.target.value)}/></label>
+       <label className="form-field">Intervalo recomendado (días) <small className="muted">(opcional)</small><input type="number" min="0" value={interval} placeholder="Opcional" onChange={e=>setInterval(e.target.value)}/></label></div><small className="muted">Si dejas precio, duración o sesiones vacíos, el tratamiento se guarda como “Datos pendientes” y no podrá agendarse hasta completarlos.</small>
       </div>
-      <div className="editor-section"><p className="editor-section-label">03 · Disponibilidad</p>
+      <div className="editor-section"><p className="editor-section-label">03 · Disponibilidad <span className="muted">· opcional</span></p>
        <div className="editor-check-grid">{branches.map(b=><label className={`editor-check ${chosenBranches.includes(b.id)?'checked':''}`} key={b.id}><input type="checkbox" checked={chosenBranches.includes(b.id)} onChange={e=>{setChosenBranches(old=>e.target.checked?[...old,b.id]:old.filter(id=>id!==b.id));if(!e.target.checked)setChosenCabins(old=>old.filter(id=>cabins.find(c=>c.id===id)?.branch_id!==b.id));}}/>{b.name}</label>)}</div>
        {!!chosenBranches.length&&<><p className="muted">Cabinas compatibles por sucursal</p><div className="editor-check-grid">{cabins.filter(c=>chosenBranches.includes(c.branch_id)).map(c=><label className={`editor-check ${chosenCabins.includes(c.id)?'checked':''}`} key={c.id}><input type="checkbox" checked={chosenCabins.includes(c.id)} onChange={e=>setChosenCabins(old=>e.target.checked?[...old,c.id]:old.filter(id=>id!==c.id))}/>{branches.find(b=>b.id===c.branch_id)?.name} · {c.name}</label>)}</div></>}
        <small className="muted">Sin sucursales asignadas, el tratamiento se verá en el catálogo pero no se podrá agendar.</small>
