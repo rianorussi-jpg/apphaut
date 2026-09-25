@@ -10,7 +10,7 @@ export function AuthScreen({defaultMode='login',error:initialError=''}:{defaultM
  const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [confirm,setConfirm]=useState('');
  const [branchId,setBranchId]=useState('');const [branches,setBranches]=useState<Branch[]>([]);
  const [error,setError]=useState(initialError);const [message,setMessage]=useState('');const [saving,setSaving]=useState(false);
- useEffect(()=>{if(!supabase)return;supabase.from('branches').select('id,name,slug,phone,address').eq('is_active',true).order('name').then(({data,error:e})=>{if(e)setError(e.message);setBranches(data??[]);});},[]);
+ useEffect(()=>{if(!supabase)return;supabase.from('branches').select('id,name,slug,phone,address,google_review_url').eq('is_active',true).order('name').then(({data,error:e})=>{if(e)setError(e.message);setBranches(data??[]);});},[]);
  async function submit(e:FormEvent){e.preventDefault();setError('');setMessage('');if(!supabase){setError('Supabase no configurado.');return;}
   if(mode==='register'){
    if(name.trim().length<2){setError('Escribe tu nombre completo.');return;}

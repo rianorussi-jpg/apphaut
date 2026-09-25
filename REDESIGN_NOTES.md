@@ -29,3 +29,7 @@ El parser de TypeScript pudo comprobar la sintaxis, pero no se pudo completar `n
 - La sucursal se muestra como dato fijo dentro del modal.
 - El clic sobre una celda de cabina ya no permite fallback a otra cabina: los conflictos se reportan para que recepción corrija el horario/cabina.
 - Tratamientos pendientes de completar en catálogo sí aparecen en las listas administrativas; las relaciones de sucursal/cabina se sincronizan con la nueva migración incremental.
+
+## Fix de build mobile
+- auth-screen ahora incluye google_review_url al cargar sucursales.
+- Branch.google_review_url es opcional para tolerar consultas parciales.
