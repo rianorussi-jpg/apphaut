@@ -173,3 +173,11 @@ Cambios:
 - Si se usa el botón general `+ Nueva cita` (sin elegir una cabina del calendario), el motor puede seguir buscando automáticamente una cabina compatible disponible.
 
 No vuelvas a ejecutar migraciones anteriores ni `seed.sql`.
+
+## Actualización: reseñas por sucursal
+
+- En el detalle de tratamientos se eliminó la descripción duplicada; la descripción completa queda únicamente en **Conócelo mejor**.
+- Las citas futuras conservan el aviso para cambios/cancelaciones.
+- Las citas con estado `completed` muestran **Regálanos una opinión en Google**.
+- En Admin → Sucursales se puede guardar el enlace de reseña de Google correspondiente a cada sucursal.
+- Aplicar únicamente la migración `20260925015000_branch_google_reviews.sql` sobre una base que ya tenga las migraciones anteriores.

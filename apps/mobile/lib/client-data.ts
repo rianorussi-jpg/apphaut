@@ -5,7 +5,7 @@ export async function loadClientData(userId:string):Promise<ClientData>{
   if(!supabase) throw new Error('Falta configurar Supabase en Vercel.');
   const [profile,branches,treatments,categories,plans,appointments,offers,rewards,availability,balance] = await Promise.all([
     supabase.from('profiles').select('id,full_name,phone,preferred_branch_id').eq('id',userId).maybeSingle(),
-    supabase.from('branches').select('id,name,slug,phone,address').eq('is_active',true).order('name'),
+    supabase.from('branches').select('id,name,slug,phone,address,google_review_url').eq('is_active',true).order('name'),
     supabase.from('treatments').select('id,name,category_id,description,short_description,image_url,base_price,default_duration_minutes,default_session_count,is_featured,catalog_details_pending,recommendations,contraindications').eq('is_active',true).order('name'),
     supabase.from('treatment_categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
     supabase.from('client_treatment_plans').select('id,treatment_id,client_id,default_branch_id,total_sessions,status,started_at,recommended_interval_days,created_at').eq('client_id',userId).order('created_at',{ascending:false}),
@@ -72,4 +72,10 @@ export function appointmentRequestWhatsappHref({
   const name=(profileName||'').trim();
   const message=`Hola,${name?` soy ${name}.`:''} Tengo activo el tratamiento ${treatmentName} en HAUT ${branchName} y quiero solicitar mi sesión ${sessionNumber} de ${totalSessions}. Preferiría asistir un ${weekday}. ¿Me pueden confirmar qué fechas y horarios tienen disponibles?`;
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
+
+export function googleReviewHref(branch:{name:string;address?:string|null;google_review_url?:string|null}){
+  if(branch.google_review_url?.trim())return branch.google_review_url.trim();
+  const query=['HAUT Clinical Center',branch.name,branch.address||'Querétaro, México'].filter(Boolean).join(' ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
