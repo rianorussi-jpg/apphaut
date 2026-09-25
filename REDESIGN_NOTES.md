@@ -22,3 +22,10 @@ Sube el contenido del proyecto al repositorio actual. Vercel Admin: Root Directo
 
 ## Verificación pendiente
 El parser de TypeScript pudo comprobar la sintaxis, pero no se pudo completar `npm install` ni el build completo de Next.js en este entorno. La comprobación end-to-end de Supabase, roles, datos del cliente y publicación de promociones debe realizarse con el proyecto real en Vercel; esta entrega no puede garantizar resultados de integración sin acceder a esa instancia.
+
+### Agenda: sucursal fija y cabina estricta
+
+- El selector de clientes de una cita ahora se limita a la sucursal de la agenda.
+- La sucursal se muestra como dato fijo dentro del modal.
+- El clic sobre una celda de cabina ya no permite fallback a otra cabina: los conflictos se reportan para que recepción corrija el horario/cabina.
+- Tratamientos pendientes de completar en catálogo sí aparecen en las listas administrativas; las relaciones de sucursal/cabina se sincronizan con la nueva migración incremental.

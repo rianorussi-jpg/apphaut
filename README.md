@@ -155,3 +155,21 @@ No vuelvas a ejecutar las migraciones anteriores ni `seed.sql`.
 En Admin → Tratamientos ahora puedes guardar una ficha con solo el **nombre** y, si quieres, una **imagen**. Categoría, descripción, precio, duración, sesiones, intervalo, sucursales y cabinas pueden completarse después.
 
 Si faltan precio, duración o número de sesiones, la ficha queda marcada como **Datos pendientes**. Se mantiene visible en el catálogo para agregar su imagen y contenido, pero no puede asignarse ni agendarse hasta completar esos tres datos operativos. No requiere una migración SQL nueva.
+
+## Actualización 25 Sep 2026 — agenda por sucursal y cabina estricta
+
+Ejecuta **solo** la migración incremental:
+
+`supabase/migrations/20260925023000_agenda_branch_clients_strict_cabin.sql`
+
+Cambios:
+
+- Agenda → Nueva cita muestra únicamente clientes vinculados a la sucursal abierta.
+- La sucursal queda fija dentro del modal; para cambiarla hay que cerrar y abrir la agenda de otra sucursal.
+- Los tratamientos activos aparecen aunque su ficha comercial siga marcada como pendiente. El catálogo puede completarse después.
+- Clientes → Iniciar otro tratamiento filtra por la sucursal elegida y ya no oculta fichas pendientes.
+- Todos los tratamientos activos actuales se vuelven a habilitar en todas las sucursales activas y se relacionan con las cabinas activas.
+- Si la cita se abrió haciendo clic en una cabina concreta, esa cabina es **obligatoria**: si el tratamiento no es compatible, está bloqueada o ya está ocupada, la reserva falla con un mensaje claro. No se mueve silenciosamente a otra cabina.
+- Si se usa el botón general `+ Nueva cita` (sin elegir una cabina del calendario), el motor puede seguir buscando automáticamente una cabina compatible disponible.
+
+No vuelvas a ejecutar migraciones anteriores ni `seed.sql`.

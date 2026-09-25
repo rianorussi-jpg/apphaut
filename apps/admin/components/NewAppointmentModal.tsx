@@ -12,6 +12,7 @@ type Treatment = {
   default_duration_minutes: number;
   default_session_count: number;
   base_price: number | string;
+  catalog_details_pending:boolean;
   durationOverride: number | null;
   priceOverride: number | null;
 };
@@ -101,20 +102,24 @@ export default function NewAppointmentModal({
 
   useEffect(() => {
     async function loadClients() {
-      if (!open || !supabase) return;
+      if (!open || !supabase || !seed.branchId) return;
       setLoadingOptions(true);
       try {
-        const rows = await fetchBookingClients();
+        const rows = await fetchBookingClients(seed.branchId);
         setClients(rows);
         const preferred=presetClientId&&rows.some(item=>item.id===presetClientId)?presetClientId:null;
         setClientId((current) => preferred ?? (current && rows.some((item) => item.id === current) ? current : (rows[0]?.id ?? '')));
+        if(presetClientId&&!preferred){
+          setError('El cliente seleccionado no pertenece a esta sucursal. Abre la agenda de su sucursal para crear la cita.');
+        }
       } catch (cause) {
+        setClients([]);
         setError(cause instanceof Error ? cause.message : 'No se pudo cargar el directorio de clientes.');
       }
       setLoadingOptions(false);
     }
-    loadClients();
-  }, [open,presetClientId]);
+    void loadClients();
+  }, [open,presetClientId,seed.branchId]);
 
   useEffect(()=>{
     async function loadPlans(){
@@ -152,17 +157,17 @@ export default function NewAppointmentModal({
         };
       });
       setPlans(built);
-      const preset=(presetPlanId&&built.find(p=>p.id===presetPlanId))||null;
-      const firstBookable=built.find(p=>p.status==='active'&&!p.active_appointment&&p.available_session_number!==null)??null;
+      const canUseInCurrentBranch=(plan:PlanOption)=>!plan.default_branch_id||plan.allow_branch_change||plan.default_branch_id===seed.branchId;
+      const preset=(presetPlanId&&built.find(p=>p.id===presetPlanId&&canUseInCurrentBranch(p)))||null;
+      const firstBookable=built.find(p=>p.status==='active'&&!p.active_appointment&&p.available_session_number!==null&&canUseInCurrentBranch(p))??null;
       const choice=preset??firstBookable;
       if(choice){
         setBookingMode('plan');setSelectedPlanId(choice.id);setTreatmentId(choice.treatment_id);
-        if(choice.default_branch_id&&!choice.allow_branch_change)setBranchId(choice.default_branch_id);
       }else if(!presetPlanId){setBookingMode('new');setSelectedPlanId('');}
       setLoadingPlans(false);
     }
     void loadPlans();
-  },[open,clientId,presetPlanId]);
+  },[open,clientId,presetPlanId,seed.branchId]);
 
   useEffect(() => {
     async function loadTreatments() {
@@ -174,8 +179,8 @@ export default function NewAppointmentModal({
       const ids = (branchRows ?? []).map((row) => row.treatment_id);
       if (!ids.length) { setTreatments([]); setLoadingOptions(false); return; }
       const { data: treatmentRows, error: treatmentError } = await supabase.from('treatments')
-        .select('id, name, default_duration_minutes, default_session_count, base_price').in('id', ids)
-        .eq('is_active', true).eq('catalog_details_pending', false).order('name');
+        .select('id, name, default_duration_minutes, default_session_count, base_price, catalog_details_pending').in('id', ids)
+        .eq('is_active', true).order('name');
       if (treatmentError) { setError(treatmentError.message); setLoadingOptions(false); return; }
       const branchMap = new Map((branchRows ?? []).map((row) => [row.treatment_id, row]));
       const merged: Treatment[] = (treatmentRows ?? []).map((row) => {const branch=branchMap.get(row.id);return {...row,durationOverride:branch?.duration_override_minutes??null,priceOverride:branch?.price_override==null?null:Number(branch.price_override)};});
@@ -194,12 +199,13 @@ export default function NewAppointmentModal({
   const newTreatments=useMemo(()=>treatments.filter(t=>!activeTreatmentIds.has(t.id)),[treatments,activeTreatmentIds]);
   const selectedPlan=plans.find(p=>p.id===selectedPlanId)??null;
   const selectedTreatment = useMemo(() => treatments.find((item) => item.id === treatmentId), [treatments, treatmentId]);
+  const selectedBranch=branches.find(branch=>branch.id===branchId)??null;
   const preferredCabinApplies = branchId === seed.branchId && Boolean(seed.preferredCabinId);
 
   function choosePlan(plan:PlanOption){
-    if(plan.status!=='active'||plan.active_appointment||plan.available_session_number===null)return;
+    const wrongFixedBranch=Boolean(plan.default_branch_id&&!plan.allow_branch_change&&plan.default_branch_id!==branchId);
+    if(plan.status!=='active'||plan.active_appointment||plan.available_session_number===null||wrongFixedBranch)return;
     setBookingMode('plan');setSelectedPlanId(plan.id);setTreatmentId(plan.treatment_id);setError('');
-    if(plan.default_branch_id&&!plan.allow_branch_change)setBranchId(plan.default_branch_id);
   }
   function chooseNew(){
     setBookingMode('new');setSelectedPlanId('');setError('');
@@ -209,7 +215,7 @@ export default function NewAppointmentModal({
   async function submit(event: FormEvent) {
     event.preventDefault(); setError('');
     if (!supabase) { setError('Supabase no está configurado.'); return; }
-    if (!clientId || !treatmentId || !branchId || !date || !time) { setError('Completa cliente, tratamiento, sucursal, fecha y hora.'); return; }
+    if (!clientId || !treatmentId || !branchId || !date || !time) { setError('Completa cliente, tratamiento, fecha y hora.'); return; }
     if(bookingMode==='plan'&&!selectedPlanId){setError('Selecciona el tratamiento activo que deseas continuar.');return;}
     setSaving(true);
     const { data, error: bookingError } = await supabase.rpc('admin_create_appointment', {
@@ -231,18 +237,21 @@ export default function NewAppointmentModal({
         <div className="modal-head"><div><p className="eyebrow">Agenda administrativa</p><h2 id="new-appointment-title">Nueva cita</h2></div><button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">×</button></div>
         <form className="booking-form" onSubmit={submit}>
           <div className="booking-form-grid">
-            <label className="form-field form-field-wide"><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)} disabled={loadingOptions || !clients.length}>{!clients.length&&<option value="">No hay clientes disponibles</option>}{clients.map((client)=><option key={client.id} value={client.id}>{client.full_name}{client.phone?` · ${client.phone}`:client.email?` · ${client.email}`:''}</option>)}</select>{!clients.length&&!loadingOptions&&<small>Los clientes aparecen aquí cuando tienen un perfil de cliente en Supabase.</small>}</label>
+            <div className="selected-plan-summary form-field-wide"><span>Sucursal</span><strong>{selectedBranch?.name??'Sucursal seleccionada'}</strong></div>
+
+            <label className="form-field form-field-wide"><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)} disabled={loadingOptions || !clients.length}>{!clients.length&&<option value="">No hay clientes de esta sucursal</option>}{clients.map((client)=><option key={client.id} value={client.id}>{client.full_name}{client.phone?` · ${client.phone}`:client.email?` · ${client.email}`:''}</option>)}</select>{!clients.length&&!loadingOptions&&<small>Solo aparecen clientes vinculados a {selectedBranch?.name??'esta sucursal'}.</small>}</label>
 
             <div className="form-field form-field-wide"><span>¿Qué deseas agendar?</span>
               <div className="booking-path-list">
                 {loadingPlans&&<div className="booking-path-note">Cargando tratamientos iniciados…</div>}
                 {!loadingPlans&&plans.map(plan=>{
-                  const selectable=plan.status==='active'&&!plan.active_appointment&&plan.available_session_number!==null;
+                  const fixedElsewhere=Boolean(plan.default_branch_id&&!plan.allow_branch_change&&plan.default_branch_id!==branchId);
+                  const selectable=plan.status==='active'&&!plan.active_appointment&&plan.available_session_number!==null&&!fixedElsewhere;
                   const branch=branches.find(b=>b.id===plan.default_branch_id)?.name;
                   return <button type="button" key={plan.id} disabled={!selectable} onClick={()=>choosePlan(plan)} className={`booking-path-card ${bookingMode==='plan'&&selectedPlanId===plan.id?'selected':''} ${!selectable?'disabled':''}`}>
                     <span className="booking-path-kicker">TRATAMIENTO INICIADO</span><strong>{plan.treatment_name}</strong>
                     <small>{plan.completed_count} de {plan.total_sessions} sesiones completadas{branch?` · Haut ${branch}`:''}</small>
-                    {plan.active_appointment?<em>Próxima cita: {dateLabel(plan.active_appointment.starts_at)}</em>:plan.status==='paused'?<em>Plan pausado</em>:plan.available_session_number!==null?<em>Agendar sesión {plan.available_session_number} de {plan.total_sessions}</em>:<em>La siguiente sesión aún no está habilitada</em>}
+                    {plan.active_appointment?<em>Próxima cita: {dateLabel(plan.active_appointment.starts_at)}</em>:fixedElsewhere?<em>Este plan pertenece a Haut {branch??'otra sucursal'}</em>:plan.status==='paused'?<em>Plan pausado</em>:plan.available_session_number!==null?<em>Agendar sesión {plan.available_session_number} de {plan.total_sessions}</em>:<em>La siguiente sesión aún no está habilitada</em>}
                   </button>;
                 })}
                 <button type="button" onClick={chooseNew} className={`booking-path-card booking-path-new ${bookingMode==='new'?'selected':''}`}><span className="booking-path-kicker">NUEVO TRATAMIENTO</span><strong>Iniciar un tratamiento diferente</strong><small>Puede tener otros tratamientos activos al mismo tiempo.</small></button>
@@ -250,12 +259,11 @@ export default function NewAppointmentModal({
             </div>
 
             {bookingMode==='plan'&&selectedPlan?<div className="selected-plan-summary form-field-wide"><span>Continuar tratamiento</span><strong>{selectedPlan.treatment_name}</strong><small>Sesión {selectedPlan.available_session_number} de {selectedPlan.total_sessions}</small></div>:
-            <label className="form-field form-field-wide"><span>Nuevo tratamiento</span><select value={treatmentId} onChange={(event) => setTreatmentId(event.target.value)} disabled={loadingOptions || !newTreatments.length}>{!newTreatments.length&&<option value="">No hay otro tratamiento disponible</option>}{newTreatments.map((treatment)=><option key={treatment.id} value={treatment.id}>{treatment.name}</option>)}</select>{selectedTreatment&&<small>{selectedTreatment.default_session_count>1?`${selectedTreatment.default_session_count} sesiones · `:''}{selectedTreatment.durationOverride??selectedTreatment.default_duration_minutes} min</small>}</label>}
+            <label className="form-field form-field-wide"><span>Nuevo tratamiento</span><select value={treatmentId} onChange={(event) => setTreatmentId(event.target.value)} disabled={loadingOptions || !newTreatments.length}>{!newTreatments.length&&<option value="">No hay otro tratamiento disponible</option>}{newTreatments.map((treatment)=><option key={treatment.id} value={treatment.id}>{treatment.name}</option>)}</select>{selectedTreatment&&<small>{selectedTreatment.default_session_count>1?`${selectedTreatment.default_session_count} sesiones · `:''}{selectedTreatment.durationOverride??selectedTreatment.default_duration_minutes} min{selectedTreatment.catalog_details_pending?' · ficha de catálogo pendiente':''}</small>}</label>}
 
-            <label className="form-field form-field-wide"><span>Sucursal</span><select value={branchId} onChange={(event) => setBranchId(event.target.value)} disabled={Boolean(selectedPlan?.default_branch_id&&!selectedPlan.allow_branch_change)}>{branches.map((branch)=><option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>{selectedPlan?.default_branch_id&&!selectedPlan.allow_branch_change&&<small>Este plan continúa en su sucursal asignada.</small>}</label>
             <label className="form-field"><span>Fecha</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label>
             <label className="form-field"><span>Hora</span><input type="time" step="1800" value={time} onChange={(event) => setTime(event.target.value)} required /></label>
-            {preferredCabinApplies&&<div className="preferred-cabin form-field-wide"><span>Cabina preferida</span><strong>{seed.preferredCabinName||'Cabina seleccionada'}</strong><small>Se intentará usar primero esta cabina. Si no es compatible o ya se ocupó, el sistema buscará otra automáticamente.</small></div>}
+            {preferredCabinApplies&&<div className="preferred-cabin form-field-wide"><span>Cabina</span><strong>{seed.preferredCabinName||'Cabina seleccionada'}</strong></div>}
             <label className="form-field form-field-wide"><span>Notas internas</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Opcional" /></label>
           </div>
           {error&&<div className="alert error-alert">{error}</div>}
