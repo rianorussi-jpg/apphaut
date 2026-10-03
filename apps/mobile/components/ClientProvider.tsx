@@ -6,6 +6,7 @@ import {supabase} from '@/lib/supabase';
 import {loadClientData} from '@/lib/client-data';
 import type {ClientData} from '@/lib/types';
 import {AuthScreen} from './auth-screen';
+import {ProfileSetupScreen} from './ProfileSetupScreen';
 
 type Context = {session:AuthSession; data:ClientData|null; loading:boolean; error:string; refresh:()=>Promise<void>; signOut:()=>Promise<void>};
 const ClientContext=createContext<Context|null>(null);
@@ -45,8 +46,10 @@ export function ClientProvider({children}:{children:React.ReactNode}){
   useEffect(()=>{if(session && (pathname==='/acceso'||pathname==='/registro'))router.replace('/');},[session,pathname,router]);
   async function signOut(){if(supabase)await supabase.auth.signOut();setData(null);router.replace('/acceso');}
   if(authLoading)return <div className="auth-wrap"><div className="auth-card"><p className="brand-kicker">HAUT CLINICAL</p><p>Comprobando tu sesión…</p></div></div>;
-  if(!session)return <AuthScreen key={pathname} defaultMode={pathname==='/registro'?'register':'login'} error={error}/>;
+  if(!session)return <AuthScreen key={pathname} error={error}/>;
   if(dataLoading && !data)return <div className="auth-wrap"><div className="auth-card"><p className="brand-kicker">HAUT CLINICAL</p><p>Cargando tu información…</p></div></div>;
   if(error&&!data)return <div className="auth-wrap"><div className="auth-card"><h2>No pudimos cargar tu cuenta</h2><p role="alert">{error}</p><button className="primary-button" onClick={()=>void refresh()}>Reintentar</button><button className="secondary-button" onClick={()=>void signOut()}>Cerrar sesión</button></div></div>;
+  const profileComplete=Boolean((data?.profile?.full_name?.trim().length??0)>=2&&((data?.profile?.phone??'').replace(/\D/g,'').length>=10)&&data?.profile?.birth_date&&data.profile.preferred_branch_id);
+  if(data&&!profileComplete)return <ProfileSetupScreen userId={session.user.id} profile={data.profile} branches={data.branches} onComplete={refresh}/>;
   return <ClientContext.Provider value={{session,data,loading:dataLoading,error,refresh,signOut}}>{children}</ClientContext.Provider>;
 }

@@ -1,1 +1,2 @@
-export default function AccessPage(){return null;}
+import {redirect} from 'next/navigation';
+export default function RegisterPage(){redirect('/acceso');}

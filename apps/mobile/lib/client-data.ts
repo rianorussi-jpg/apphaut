@@ -4,7 +4,7 @@ import type {ClientData, Appointment, Session, Plan} from './types';
 export async function loadClientData(userId:string):Promise<ClientData>{
   if(!supabase) throw new Error('Falta configurar Supabase en Vercel.');
   const [profile,branches,treatments,categories,plans,appointments,offers,rewards,availability,balance] = await Promise.all([
-    supabase.from('profiles').select('id,full_name,phone,preferred_branch_id').eq('id',userId).maybeSingle(),
+    supabase.from('profiles').select('id,full_name,phone,birth_date,preferred_branch_id').eq('id',userId).maybeSingle(),
     supabase.from('branches').select('id,name,slug,phone,address,google_review_url').eq('is_active',true).order('name'),
     supabase.from('treatments').select('id,name,category_id,description,short_description,image_url,base_price,default_duration_minutes,default_session_count,is_featured,catalog_details_pending,recommendations,contraindications').eq('is_active',true).order('name'),
     supabase.from('treatment_categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
