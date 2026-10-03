@@ -57,8 +57,7 @@ export function AuthScreen({error:initialError=''}:{error?:string}){
   }
 
   if(step==='code')return <main className="auth-wrap"><section className="auth-card otp-card">
-    <div className="auth-mark">H</div>
-    <p className="brand-kicker">HAUT CLINICAL</p>
+    <img className="auth-logo" src="/logo.png" alt="HAUT Clinical Center"/>
     <h1>Revisa tu correo</h1>
     <p className="subtle auth-copy">Escribe el código de 6 dígitos que enviamos a <strong>{email}</strong>.</p>
     <form onSubmit={verifyCode} className="auth-form otp-form">
@@ -88,8 +87,7 @@ export function AuthScreen({error:initialError=''}:{error?:string}){
   </section></main>;
 
   return <main className="auth-wrap"><section className="auth-card">
-    <div className="auth-mark">H</div>
-    <p className="brand-kicker">HAUT CLINICAL</p>
+    <img className="auth-logo" src="/logo.png" alt="HAUT Clinical Center"/>
     <h1>Tu espacio Haut</h1>
     <p className="subtle auth-copy">Consulta tus tratamientos, próximas citas, promociones y beneficios.</p>
     <form onSubmit={e=>{e.preventDefault();void sendCode();}} className="auth-form email-only-form">
