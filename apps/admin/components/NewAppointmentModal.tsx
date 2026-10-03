@@ -16,6 +16,9 @@ type Treatment = {
   durationOverride: number | null;
   priceOverride: number | null;
 };
+const sessionOptions=[1,3,5,8,10];
+const durationOptions=[15,30,45,60,85];
+
 type PlanOption = {
   id:string;
   treatment_id:string;
@@ -26,6 +29,7 @@ type PlanOption = {
   allow_branch_change:boolean;
   completed_count:number;
   available_session_number:number|null;
+  available_session_duration:number|null;
   active_appointment:{id:string;starts_at:string}|null;
 };
 
@@ -78,6 +82,8 @@ export default function NewAppointmentModal({
   const [date, setDate] = useState(seed.date);
   const [time, setTime] = useState(seed.time);
   const [notes, setNotes] = useState('');
+  const [newPlanSessions,setNewPlanSessions]=useState('');
+  const [durationMinutes,setDurationMinutes]=useState('');
   const [clients, setClients] = useState<Client[]>([]);
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [plans,setPlans]=useState<PlanOption[]>([]);
@@ -97,6 +103,8 @@ export default function NewAppointmentModal({
     setSelectedPlanId(presetPlanId??'');
     setBookingMode(presetPlanId?'plan':'new');
     setNotes('');
+    setNewPlanSessions('');
+    setDurationMinutes('');
     setError('');
   }, [open, seed.branchId, seed.date, seed.time, seed.preferredCabinId, presetTreatmentId, presetPlanId]);
 
@@ -130,10 +138,10 @@ export default function NewAppointmentModal({
         .eq('client_id',clientId).in('status',['active','paused']).order('created_at',{ascending:false});
       if(planError){setError(planError.message);setLoadingPlans(false);return;}
       const raw=planRows??[];
-      if(!raw.length){setPlans([]);setBookingMode('new');setSelectedPlanId('');setLoadingPlans(false);return;}
+      if(!raw.length){setPlans([]);setBookingMode('new');setSelectedPlanId('');setNewPlanSessions('');setDurationMinutes('');setLoadingPlans(false);return;}
       const planIds=raw.map(p=>p.id);const treatmentIds=[...new Set(raw.map(p=>p.treatment_id))];
       const [sessionResult,treatmentResult]=await Promise.all([
-        supabase.from('treatment_plan_sessions').select('id,plan_id,session_number,status').in('plan_id',planIds).order('session_number'),
+        supabase.from('treatment_plan_sessions').select('id,plan_id,session_number,status,planned_duration_minutes').in('plan_id',planIds).order('session_number'),
         supabase.from('treatments').select('id,name').in('id',treatmentIds),
       ]);
       if(sessionResult.error||treatmentResult.error){setError(sessionResult.error?.message??treatmentResult.error?.message??'No se pudieron cargar los planes.');setLoadingPlans(false);return;}
@@ -153,6 +161,7 @@ export default function NewAppointmentModal({
           default_branch_id:p.default_branch_id,allow_branch_change:p.allow_branch_change,
           completed_count:ps.filter(s=>s.status==='completed').length,
           available_session_number:ps.find(s=>s.status==='available')?.session_number??null,
+          available_session_duration:ps.find(s=>s.status==='available')?.planned_duration_minutes??null,
           active_appointment:activeAppointments.find(a=>ids.has(a.plan_session_id))??null,
         };
       });
@@ -162,8 +171,8 @@ export default function NewAppointmentModal({
       const firstBookable=built.find(p=>p.status==='active'&&!p.active_appointment&&p.available_session_number!==null&&canUseInCurrentBranch(p))??null;
       const choice=preset??firstBookable;
       if(choice){
-        setBookingMode('plan');setSelectedPlanId(choice.id);setTreatmentId(choice.treatment_id);
-      }else if(!presetPlanId){setBookingMode('new');setSelectedPlanId('');}
+        setBookingMode('plan');setSelectedPlanId(choice.id);setTreatmentId(choice.treatment_id);setDurationMinutes(choice.available_session_duration&&durationOptions.includes(Number(choice.available_session_duration))?String(choice.available_session_duration):'');
+      }else if(!presetPlanId){setBookingMode('new');setSelectedPlanId('');setNewPlanSessions('');setDurationMinutes('');}
       setLoadingPlans(false);
     }
     void loadPlans();
@@ -205,10 +214,10 @@ export default function NewAppointmentModal({
   function choosePlan(plan:PlanOption){
     const wrongFixedBranch=Boolean(plan.default_branch_id&&!plan.allow_branch_change&&plan.default_branch_id!==branchId);
     if(plan.status!=='active'||plan.active_appointment||plan.available_session_number===null||wrongFixedBranch)return;
-    setBookingMode('plan');setSelectedPlanId(plan.id);setTreatmentId(plan.treatment_id);setError('');
+    setBookingMode('plan');setSelectedPlanId(plan.id);setTreatmentId(plan.treatment_id);setDurationMinutes(plan.available_session_duration&&durationOptions.includes(Number(plan.available_session_duration))?String(plan.available_session_duration):'');setNewPlanSessions('');setError('');
   }
   function chooseNew(){
-    setBookingMode('new');setSelectedPlanId('');setError('');
+    setBookingMode('new');setSelectedPlanId('');setNewPlanSessions('');setDurationMinutes('');setError('');
     const first=newTreatments[0];setTreatmentId(first?.id??'');
   }
 
@@ -217,10 +226,13 @@ export default function NewAppointmentModal({
     if (!supabase) { setError('Supabase no está configurado.'); return; }
     if (!clientId || !treatmentId || !branchId || !date || !time) { setError('Completa cliente, tratamiento, fecha y hora.'); return; }
     if(bookingMode==='plan'&&!selectedPlanId){setError('Selecciona el tratamiento activo que deseas continuar.');return;}
+    if(!durationMinutes){setError('Selecciona la duración de esta cita.');return;}
+    if(bookingMode==='new'&&!newPlanSessions){setError('Selecciona cuántas sesiones tendrá este nuevo plan.');return;}
     setSaving(true);
     const { data, error: bookingError } = await supabase.rpc('admin_create_appointment', {
       p_client_id: clientId,p_treatment_id: treatmentId,p_branch_id: branchId,p_date: date,p_time: `${time}:00`,
       p_preferred_cabin_id: preferredCabinApplies ? seed.preferredCabinId ?? null : null,p_internal_notes: notes || null,
+      p_total_sessions:bookingMode==='new'?Number(newPlanSessions):null,p_duration_minutes:Number(durationMinutes),
     });
     setSaving(false);
     if (bookingError) { setError(bookingError.message.replace(/^.*?: /, '')); return; }
@@ -258,8 +270,15 @@ export default function NewAppointmentModal({
               </div>
             </div>
 
-            {bookingMode==='plan'&&selectedPlan?<div className="selected-plan-summary form-field-wide"><span>Continuar tratamiento</span><strong>{selectedPlan.treatment_name}</strong><small>Sesión {selectedPlan.available_session_number} de {selectedPlan.total_sessions}</small></div>:
-            <label className="form-field form-field-wide"><span>Nuevo tratamiento</span><select value={treatmentId} onChange={(event) => setTreatmentId(event.target.value)} disabled={loadingOptions || !newTreatments.length}>{!newTreatments.length&&<option value="">No hay otro tratamiento disponible</option>}{newTreatments.map((treatment)=><option key={treatment.id} value={treatment.id}>{treatment.name}</option>)}</select>{selectedTreatment&&<small>{selectedTreatment.default_session_count>1?`${selectedTreatment.default_session_count} sesiones · `:''}{selectedTreatment.durationOverride??selectedTreatment.default_duration_minutes} min{selectedTreatment.catalog_details_pending?' · ficha de catálogo pendiente':''}</small>}</label>}
+            {bookingMode==='plan'&&selectedPlan?<>
+              <div className="selected-plan-summary form-field-wide"><span>Continuar tratamiento</span><strong>{selectedPlan.treatment_name}</strong><small>Sesión {selectedPlan.available_session_number} de {selectedPlan.total_sessions}</small></div>
+              <label className="form-field form-field-wide"><span>Duración de esta cita</span><select value={durationMinutes} onChange={(event)=>setDurationMinutes(event.target.value)} required><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select><small>Se propone la duración definida para este plan. Puedes cambiarla únicamente para esta sesión.</small></label>
+            </>:
+            <>
+              <label className="form-field form-field-wide"><span>Nuevo tratamiento</span><select value={treatmentId} onChange={(event) => {setTreatmentId(event.target.value);setNewPlanSessions('');setDurationMinutes('');}} disabled={loadingOptions || !newTreatments.length}>{!newTreatments.length&&<option value="">No hay otro tratamiento disponible</option>}{newTreatments.map((treatment)=><option key={treatment.id} value={treatment.id}>{treatment.name}</option>)}</select>{selectedTreatment&&<small>Referencia del catálogo: {selectedTreatment.default_session_count} {selectedTreatment.default_session_count===1?'sesión':'sesiones'} · {selectedTreatment.default_duration_minutes} min · puede variar{selectedTreatment.catalog_details_pending?' · ficha pendiente':''}.</small>}</label>
+              <div className="booking-plan-config form-field-wide"><span>Sesiones de este plan</span><div className="session-choice-row">{sessionOptions.map(option=><button key={option} type="button" className={newPlanSessions===String(option)?'selected':''} aria-pressed={newPlanSessions===String(option)} onClick={()=>setNewPlanSessions(String(option))}>{option}</button>)}</div></div>
+              <label className="form-field form-field-wide"><span>Duración por cita</span><select value={durationMinutes} onChange={(event)=>setDurationMinutes(event.target.value)} required><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select><small>Esta duración se guardará como base para las sesiones de este cliente.</small></label>
+            </>}
 
             <label className="form-field"><span>Fecha</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label>
             <label className="form-field"><span>Hora</span><input type="time" step="1800" value={time} onChange={(event) => setTime(event.target.value)} required /></label>
@@ -267,7 +286,7 @@ export default function NewAppointmentModal({
             <label className="form-field form-field-wide"><span>Notas internas</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Opcional" /></label>
           </div>
           {error&&<div className="alert error-alert">{error}</div>}
-          <div className="booking-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="submit" className="primary-button inline-button" disabled={saving||loadingOptions||loadingPlans||!clients.length||!treatmentId}>{saving?'Creando cita…':'Confirmar cita'}</button></div>
+          <div className="booking-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="submit" className="primary-button inline-button" disabled={saving||loadingOptions||loadingPlans||!clients.length||!treatmentId||!durationMinutes||(bookingMode==='new'&&!newPlanSessions)}>{saving?'Creando cita…':'Confirmar cita'}</button></div>
         </form>
       </section>
     </div>

@@ -88,7 +88,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
      name:name.trim(),short_description:description.trim()||null,description:description.trim()||null,
      category_id:categoryId||null,
      // La base conserva valores técnicos válidos mientras la ficha esté pendiente.
-     // Mobile/Admin no los muestran ni permiten agendar hasta completar precio, duración y sesiones.
+     // Mobile los trata como datos informativos pendientes; la agenda usa la configuración individual del plan.
      base_price:price===''?(treatment?Number(treatment.base_price):0):Number(price),
      default_duration_minutes:duration===''?(treatment?Number(treatment.default_duration_minutes):60):Number(duration),
      default_session_count:sessions===''?(treatment?Number(treatment.default_session_count):1):Number(sessions),
@@ -143,7 +143,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
    <section className="treatment-editor" role="dialog" aria-modal="true" aria-labelledby="treatment-editor-title">
     <div className="treatment-editor-top"><div><p className="eyebrow">Catálogo HAUT · Administración</p>
       <h2 id="treatment-editor-title">{treatment?'Editar tratamiento':'Nuevo tratamiento'}</h2>
-      <p className="muted">Puedes guardar ahora solo el nombre y la imagen. Completa precio, duración y sesiones cuando tengas esos datos.</p>
+      <p className="muted">La duración y las sesiones de esta ficha son una referencia para el catálogo. El plan real se define individualmente al asignarlo a cada cliente.</p>
      </div><button type="button" className="modal-close" aria-label="Cerrar" disabled={saving} onClick={onClose}>×</button></div>
     <form onSubmit={save} className="treatment-editor-content">
      {error&&<div className="alert error-alert" role="alert">{error}</div>}
@@ -153,11 +153,11 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
        <label className="form-field">Descripción<textarea rows={4} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Describe brevemente el tratamiento…"/></label>
        <label className="form-field">Categoría <small className="muted">(opcional)</small><select value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">Selecciona una categoría</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       </div>
-      <div className="editor-section"><p className="editor-section-label">02 · Precio y sesiones <span className="muted">· opcional por ahora</span></p>
+      <div className="editor-section"><p className="editor-section-label">02 · Información comercial <span className="muted">· referencia del catálogo</span></p>
        <div className="editor-two"><label className="form-field">Precio base (MXN) <small className="muted">(opcional)</small><input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
-       <label className="form-field">Duración por sesión (min) <small className="muted">(opcional)</small><input type="number" min="1" max="600" value={duration} onChange={e=>setDuration(e.target.value)}/></label>
-       <label className="form-field">Número de sesiones <small className="muted">(opcional)</small><input type="number" min="1" max="200" value={sessions} onChange={e=>setSessions(e.target.value)}/></label>
-       <label className="form-field">Intervalo recomendado (días) <small className="muted">(opcional)</small><input type="number" min="0" value={interval} placeholder="Opcional" onChange={e=>setInterval(e.target.value)}/></label></div><small className="muted">Si dejas precio, duración o sesiones vacíos, el tratamiento se guarda como “Datos pendientes” y no podrá agendarse hasta completarlos.</small>
+       <label className="form-field">Duración de referencia (min) <small className="muted">(informativa)</small><input type="number" min="1" max="600" value={duration} onChange={e=>setDuration(e.target.value)}/></label>
+       <label className="form-field">Sesiones de referencia <small className="muted">(informativas)</small><input type="number" min="1" max="200" value={sessions} onChange={e=>setSessions(e.target.value)}/></label>
+       <label className="form-field">Intervalo recomendado (días) <small className="muted">(opcional)</small><input type="number" min="0" value={interval} placeholder="Opcional" onChange={e=>setInterval(e.target.value)}/></label></div><small className="muted">Duración y sesiones no controlan las citas. Al asignar el tratamiento a un cliente se eligen sus sesiones y duración reales. Si faltan datos, la app los mostrará como pendientes.</small>
       </div>
       <div className="editor-section"><p className="editor-section-label">03 · Disponibilidad <span className="muted">· opcional</span></p>
        <div className="editor-check-grid">{branches.map(b=><label className={`editor-check ${chosenBranches.includes(b.id)?'checked':''}`} key={b.id}><input type="checkbox" checked={chosenBranches.includes(b.id)} onChange={e=>{setChosenBranches(old=>e.target.checked?[...old,b.id]:old.filter(id=>id!==b.id));if(!e.target.checked)setChosenCabins(old=>old.filter(id=>cabins.find(c=>c.id===id)?.branch_id!==b.id));}}/>{b.name}</label>)}</div>

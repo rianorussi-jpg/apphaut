@@ -36,3 +36,6 @@ enable_confirmations = false
 [storage]
 enabled = true
 file_size_limit = "20MiB"
+
+[functions.process-email-notifications]
+verify_jwt = false

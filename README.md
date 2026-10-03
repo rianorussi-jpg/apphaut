@@ -181,3 +181,103 @@ No vuelvas a ejecutar migraciones anteriores ni `seed.sql`.
 - Las citas con estado `completed` muestran **Regálanos una opinión en Google**.
 - En Admin → Sucursales se puede guardar el enlace de reseña de Google correspondiente a cada sucursal.
 - Aplicar únicamente la migración `20260925015000_branch_google_reviews.sql` sobre una base que ya tenga las migraciones anteriores.
+
+## Acceso del cliente por código de 6 dígitos
+
+La app Mobile usa Supabase Auth con Email OTP. Ya no existe registro con contraseña: el usuario escribe su correo, recibe un código de 6 dígitos y lo verifica en la app. Supabase conserva la sesión en el dispositivo.
+
+### Configuración necesaria en Supabase
+
+En Authentication → Email Templates → Magic Link, el correo debe mostrar el token OTP. Usa `{{ .Token }}` en el contenido del template (en lugar de depender únicamente de `{{ .ConfirmationURL }}`). Ejemplo de texto: `Tu código de acceso a HAUT es: {{ .Token }}`.
+
+`signInWithOtp` está configurado con `shouldCreateUser: true`, por lo que un correo nuevo crea automáticamente el usuario. Después del primer acceso, la app solicita nombre completo, teléfono, fecha de nacimiento y sucursal y guarda estos datos en `profiles`.
+
+No requiere una migración nueva: `profiles.birth_date` ya existe en el esquema y las políticas actuales permiten al usuario actualizar su propio perfil.
+
+## Logo de la app del cliente
+
+Coloca el logotipo oficial en:
+
+`apps/mobile/public/logo.png`
+
+La app lo usa en el encabezado superior y en la pantalla de acceso. No cambies el nombre del archivo, porque el código lo carga como `/logo.png`.
+
+## Actualización 2 Oct 2026 — correos automáticos de tratamientos y citas
+
+Se reutiliza la tabla `notification_jobs` del esquema original y se agrega una Edge Function llamada `process-email-notifications`.
+
+### Qué envía
+
+- Al asignar un tratamiento: correo inmediato `treatment_assigned`.
+- Al crear una cita: correo inmediato `appointment_created`.
+- 24 horas antes de una cita: `appointment_reminder_24h`.
+- Si la cita se cancela, finaliza o queda como no-show antes del recordatorio, el recordatorio pendiente se cancela.
+- Si la cita se reagenda antes de que salga el recordatorio, el job se mueve a 24 horas antes del nuevo horario.
+- La cola evita duplicar el mismo correo para el mismo plan/cita.
+
+### 1. SQL incremental
+
+Ejecuta **solo**:
+
+`supabase/migrations/20261002214500_email_notifications.sql`
+
+No vuelvas a ejecutar migraciones anteriores ni `seed.sql`.
+
+### 2. Edge Function Secrets
+
+En Supabase → Edge Functions → Secrets agrega:
+
+- `SMTP_HOSTNAME` — usa el mismo host que configuraste en Zoho/Supabase Auth (por ejemplo `smtp.zoho.com`).
+- `SMTP_PORT` — normalmente `465`.
+- `SMTP_SECURE` — `true` para puerto 465.
+- `SMTP_USERNAME` — por ejemplo `citas@haut.com.mx`.
+- `SMTP_PASSWORD` — la **App Password nueva de Zoho para notificaciones**.
+- `SMTP_FROM` — por ejemplo `HAUT Clinical Center <citas@haut.com.mx>`.
+- `EMAIL_WORKER_SECRET` — una cadena larga aleatoria que tú generes.
+- `CLIENT_APP_URL` — URL pública del proyecto Mobile en Vercel, por ejemplo `https://app-haut.vercel.app`.
+
+Supabase inyecta automáticamente `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`; no los agregues manualmente.
+
+### 3. Desplegar la función
+
+La función está en:
+
+`supabase/functions/process-email-notifications/index.ts`
+
+Con CLI:
+
+`supabase functions deploy process-email-notifications --no-verify-jwt`
+
+También puedes crear/pegar el archivo desde Supabase Dashboard → Edge Functions y desplegarla allí.
+
+### 4. Crear el Cron
+
+En Supabase → Integrations → Cron → Jobs crea un job llamado, por ejemplo:
+
+`haut-email-worker`
+
+Frecuencia:
+
+`* * * * *`
+
+Es decir, una vez por minuto. Selecciona HTTP request / Edge Function y realiza un POST a:
+
+`https://TU_PROJECT_REF.supabase.co/functions/v1/process-email-notifications`
+
+Headers:
+
+- `Content-Type: application/json`
+- `x-haut-worker-secret: EL_MISMO_VALOR_DE_EMAIL_WORKER_SECRET`
+
+Body:
+
+`{}`
+
+Con esto los correos de asignación/cita salen normalmente dentro del siguiente minuto y los recordatorios se procesan cuando llegan a su `scheduled_at`.
+
+### 5. Prueba recomendada
+
+1. Asigna un tratamiento a un cliente con un correo real.
+2. Espera hasta un minuto y revisa `notification_jobs`: debe pasar de `queued` → `processing` → `sent`.
+3. Crea una cita: debe crearse un job `appointment_created` y, si la cita es a más de 24 h, otro `appointment_reminder_24h` con `scheduled_at = starts_at - 24 hours`.
+4. Revisa Edge Functions → Logs si un correo queda en `failed`.
