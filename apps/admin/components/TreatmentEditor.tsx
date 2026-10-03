@@ -7,7 +7,7 @@ export type TreatmentRecord = {
   id:string;name:string;short_description:string|null;description:string|null;image_url:string|null;
   base_price:number|string;default_duration_minutes:number;default_session_count:number;
   recommended_interval_days:number|null;is_active:boolean;is_featured:boolean;
-  catalog_details_pending:boolean;category_id:string|null;
+  catalog_details_pending:boolean;is_catalog_visible:boolean;category_id:string|null;
 };
 type Category={id:string;name:string;slug:string};
 type Branch={id:string;name:string};
@@ -26,6 +26,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
  const [interval,setInterval]=useState(treatment?.recommended_interval_days==null?'':String(treatment.recommended_interval_days));
  const [featured,setFeatured]=useState(treatment?.is_featured??false);
  const [active,setActive]=useState(treatment?.is_active??true);
+ const [catalogVisible,setCatalogVisible]=useState(treatment?.is_catalog_visible??true);
  const [imageUrl,setImageUrl]=useState(treatment?.image_url??'');
  const [file,setFile]=useState<File|null>(null);
  const [preview,setPreview]=useState(treatment?.image_url??'');
@@ -93,7 +94,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
      default_duration_minutes:duration===''?(treatment?Number(treatment.default_duration_minutes):60):Number(duration),
      default_session_count:sessions===''?(treatment?Number(treatment.default_session_count):1):Number(sessions),
      recommended_interval_days:interval===''?null:Number(interval),
-     is_featured:featured,is_active:active,catalog_details_pending:detailsPending,image_url:finalImageUrl,
+     is_featured:featured,is_active:active,is_catalog_visible:catalogVisible,catalog_details_pending:detailsPending,image_url:finalImageUrl,
    };
    let treatmentId=treatment?.id;
    if(treatmentId){
@@ -132,7 +133,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
     const result=await supabase.from('treatment_branches').delete().eq('treatment_id',treatmentId).in('branch_id',removeBranches);
     if(result.error)throw new Error('No se pudieron desasignar las sucursales: '+result.error.message);
    }
-   onSaved(treatment?'Tratamiento actualizado. La imagen ya está disponible en el catálogo del cliente.':'Tratamiento creado. Ya aparece en el catálogo del cliente.');
+   onSaved(treatment?'Tratamiento actualizado.':'Tratamiento creado correctamente.');
   }catch(cause){
    // Solo borrar archivos recién subidos cuando falló antes de actualizar/crear
    // el registro; no borrar imágenes existentes ni imágenes ya referenciadas.
@@ -162,17 +163,18 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
       <div className="editor-section"><p className="editor-section-label">03 · Disponibilidad <span className="muted">· opcional</span></p>
        <div className="editor-check-grid">{branches.map(b=><label className={`editor-check ${chosenBranches.includes(b.id)?'checked':''}`} key={b.id}><input type="checkbox" checked={chosenBranches.includes(b.id)} onChange={e=>{setChosenBranches(old=>e.target.checked?[...old,b.id]:old.filter(id=>id!==b.id));if(!e.target.checked)setChosenCabins(old=>old.filter(id=>cabins.find(c=>c.id===id)?.branch_id!==b.id));}}/>{b.name}</label>)}</div>
        {!!chosenBranches.length&&<><p className="muted">Cabinas compatibles por sucursal</p><div className="editor-check-grid">{cabins.filter(c=>chosenBranches.includes(c.branch_id)).map(c=><label className={`editor-check ${chosenCabins.includes(c.id)?'checked':''}`} key={c.id}><input type="checkbox" checked={chosenCabins.includes(c.id)} onChange={e=>setChosenCabins(old=>e.target.checked?[...old,c.id]:old.filter(id=>id!==c.id))}/>{branches.find(b=>b.id===c.branch_id)?.name} · {c.name}</label>)}</div></>}
-       <small className="muted">Sin sucursales asignadas, el tratamiento se verá en el catálogo pero no se podrá agendar.</small>
+       <small className="muted">Sin sucursales asignadas, el tratamiento puede conservarse como ficha informativa, pero no se podrá agendar.</small>
       </div>
      </div><aside className="treatment-editor-side"><div className="editor-section"><p className="editor-section-label">Fotografía del tratamiento</p>
-      <div className="editor-image-preview">{preview?<img src={preview} alt="Vista previa del tratamiento"/>:<div className="editor-photo-empty"><span>✦</span><strong>Imagen del tratamiento</strong><small>Se mostrará en el catálogo del cliente</small></div>}</div>
+      <div className="editor-image-preview">{preview?<img src={preview} alt="Vista previa del tratamiento"/>:<div className="editor-photo-empty"><span>✦</span><strong>Imagen del tratamiento</strong><small>Se utilizará en la app del cliente cuando corresponda</small></div>}</div>
       <label className="editor-upload">{file?'Cambiar fotografía':'Seleccionar fotografía'}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={e=>chooseFile(e.target.files?.[0]??null)} /></label>
       <small className="muted">JPG, PNG, WebP o AVIF · hasta 10 MB. Se guarda en Supabase Storage.</small>
       {file&&<button type="button" className="editor-link" onClick={()=>setFile(null)}>Descartar imagen nueva</button>}
       </div>
       <div className="editor-section editor-settings"><p className="editor-section-label">Publicación</p>
-       <label className="editor-toggle"><input type="checkbox" checked={featured} onChange={e=>setFeatured(e.target.checked)}/><span><strong>Destacar en Favoritos</strong><small>También aparecerá entre los tratamientos destacados.</small></span></label>
-       <label className="editor-toggle"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/><span><strong>Tratamiento activo</strong><small>Visible en el catálogo del cliente.</small></span></label>
+       <label className="editor-toggle"><input type="checkbox" checked={featured} onChange={e=>setFeatured(e.target.checked)}/><span><strong>Destacar en Favoritos</strong><small>Puede aparecer entre las recomendaciones de HAUT cuando también está visible en catálogo.</small></span></label>
+       <label className="editor-toggle"><input type="checkbox" checked={catalogVisible} onChange={e=>setCatalogVisible(e.target.checked)}/><span><strong>Mostrar en catálogo</strong><small>Si lo desactivas, se oculta de la lista pública de tratamientos, pero sigue disponible para asignar, agendar y consultar dentro de los planes de clientes.</small></span></label>
+       <label className="editor-toggle"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/><span><strong>Tratamiento activo</strong><small>Disponible operativamente para asignaciones, agenda y planes. Desactívalo solo si HAUT deja de ofrecerlo.</small></span></label>
       </div>
      </aside></div>
      <footer className="editor-footer"><button type="button" className="secondary-button" disabled={saving} onClick={onClose}>Cancelar</button><button type="submit" className="primary-button" disabled={saving||loadingLinks}>{saving?'Guardando…':treatment?'Guardar cambios':'Agregar tratamiento'}</button></footer>

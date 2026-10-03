@@ -6,17 +6,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {Icon,type IconName} from './Icon';
 
-const navigation: {href:string;label:string;icon:IconName}[] = [
-  { href: '/dashboard', label: 'Inicio', icon: 'home' },
-  { href: '/agenda', label: 'Agenda', icon: 'calendar' },
-  { href: '/citas', label: 'Citas', icon: 'clock' },
-  { href: '/clientes', label: 'Clientes', icon: 'user' },
-  { href: '/promociones', label: 'Promociones', icon: 'gift' },
-  { href: '/tratamientos', label: 'Tratamientos', icon: 'sparkles' },
-  { href: '/sucursales', label: 'Sucursales y cabinas', icon: 'pin' },
-  { href: '/horarios', label: 'Horarios y bloqueos', icon: 'sliders' },
-  { href: '/usuarios', label: 'Usuarios y permisos', icon: 'shield' },
-  { href: '/configuracion', label: 'Configuración', icon: 'sliders' },
+type NavigationItem={href:string;label:string;icon:IconName};
+const navigationGroups:{label:string;items:NavigationItem[]}[]=[
+  {label:'OPERACIÓN',items:[
+    { href: '/dashboard', label: 'Inicio', icon: 'home' },
+    { href: '/agenda', label: 'Agenda', icon: 'calendar' },
+    { href: '/citas', label: 'Citas', icon: 'clock' },
+    { href: '/clientes', label: 'Clientes', icon: 'user' },
+  ]},
+  {label:'GESTIÓN HAUT',items:[
+    { href: '/tratamientos', label: 'Tratamientos', icon: 'sparkles' },
+    { href: '/promociones', label: 'Promociones', icon: 'gift' },
+    { href: '/sucursales', label: 'Sucursales y cabinas', icon: 'pin' },
+    { href: '/horarios', label: 'Horarios', icon: 'sliders' },
+  ]},
 ];
 
 const titles: Record<string, string> = {
@@ -27,9 +30,7 @@ const titles: Record<string, string> = {
   '/promociones': 'Promociones',
   '/tratamientos': 'Tratamientos',
   '/sucursales': 'Sucursales y cabinas',
-  '/horarios': 'Horarios y bloqueos',
-  '/usuarios': 'Usuarios y permisos',
-  '/configuracion': 'Configuración',
+  '/horarios': 'Horarios',
 };
 
 type StaffState = {
@@ -104,10 +105,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <Link href="/dashboard" className="brand brand-link" onClick={() => setMenuOpen(false)}>HAUT <span>CLINICAL</span></Link>
           <p className="eyebrow sidebar-eyebrow">CLINICAL CENTER · ADMIN</p>
           <nav className="sidebar-nav">
-            {navigation.map((item) => {
+            {navigationGroups.map(group=><div className="sidebar-nav-group" key={group.label}><span className="sidebar-nav-group-label">{group.label}</span>{group.items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(item.href + '/');
               return <Link key={item.href} className={active ? 'active' : ''} href={item.href} onClick={() => setMenuOpen(false)}><span className="sidebar-nav-icon"><Icon name={item.icon} size={18}/></span><span>{item.label}</span>{active&&<span className="sidebar-nav-active-indicator"/>}</Link>;
-            })}
+            })}</div>)}
           </nav>
         </div>
         <div className="staff-card">

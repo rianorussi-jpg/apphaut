@@ -20,7 +20,7 @@ export default function TreatmentsPage(){
  async function load(){
   if(!supabase){setError('Falta configurar Supabase.');setLoading(false);return;}
   const [t,c,b,cb]=await Promise.all([
-   supabase.from('treatments').select('id,name,short_description,description,image_url,base_price,default_duration_minutes,default_session_count,recommended_interval_days,is_active,is_featured,catalog_details_pending,category_id').order('name'),
+   supabase.from('treatments').select('id,name,short_description,description,image_url,base_price,default_duration_minutes,default_session_count,recommended_interval_days,is_active,is_featured,catalog_details_pending,is_catalog_visible,category_id').order('name'),
    supabase.from('treatment_categories').select('id,name,slug').eq('is_active',true).order('sort_order'),
    supabase.from('branches').select('id,name').eq('is_active',true).order('name'),
    supabase.from('cabins').select('id,branch_id,name').eq('is_active',true)
@@ -33,7 +33,7 @@ export default function TreatmentsPage(){
  useEffect(()=>{void load();},[]);
  const filtered=treatments.filter(t=>t.name.toLocaleLowerCase('es').includes(query.toLocaleLowerCase('es')));
  return <section className="page-stack treatment-admin-page">
-  <div className="treatment-list-heading"><div><p className="eyebrow">Catálogo · HAUT CLINICAL</p><h2>Tratamientos</h2><p className="muted">Gestiona las fichas e imágenes que aparecen en la app del cliente.</p></div>
+  <div className="treatment-list-heading"><div><p className="eyebrow">Catálogo · HAUT CLINICAL</p><h2>Tratamientos</h2><p className="muted">Administra las fichas, su visibilidad en catálogo y la disponibilidad operativa para agenda y planes.</p></div>
    <button type="button" className="primary-button" onClick={()=>{setEditing(null);setEditorOpen(true);setError('');setSuccess('');}}>+ Agregar nuevo tratamiento</button></div>
   {error&&<div className="alert error-alert" role="alert">{error}</div>}
   {success&&<div className="alert" role="status">{success}</div>}
@@ -41,7 +41,7 @@ export default function TreatmentsPage(){
   {loading?<div className="fullscreen-inline"><div className="spinner"/></div>:filtered.length
    ?<div className="treatment-admin-grid">{filtered.map(t=><article className="treatment-admin-card" key={t.id}>
      <div className="treatment-admin-photo">{t.image_url?<img src={t.image_url} alt={t.name} loading="lazy"/>:<div className="treatment-admin-photo-fallback"><span>✦</span><small>Imagen pendiente</small></div>}</div>
-     <div className="treatment-admin-card-body"><div className="treatment-admin-flags"><span className={`mini-pill ${t.is_active?'active-pill':''}`}>{t.is_active?'Activo':'Inactivo'}</span>{t.is_featured&&<span className="mini-pill">★ Favorito</span>}{t.catalog_details_pending&&<span className="mini-pill">Datos pendientes</span>}</div>
+     <div className="treatment-admin-card-body"><div className="treatment-admin-flags"><span className={`mini-pill ${t.is_active?'active-pill':''}`}>{t.is_active?'Activo':'Inactivo'}</span>{!t.is_catalog_visible&&<span className="mini-pill hidden-catalog-pill">Oculto del catálogo</span>}{t.is_featured&&<span className="mini-pill">★ Favorito</span>}{t.catalog_details_pending&&<span className="mini-pill">Datos pendientes</span>}</div>
      <h3>{t.name}</h3><p className="muted treatment-admin-desc">{t.short_description||'Agrega una descripción para que los clientes conozcan el tratamiento.'}</p>
      <div className="treatment-admin-facts"><span>{t.catalog_details_pending?'Duración pendiente':`${t.default_duration_minutes} min`}</span><span>{t.catalog_details_pending?'Sesiones pendientes':`${t.default_session_count} ${t.default_session_count===1?'sesión':'sesiones'}`}</span><strong>{t.catalog_details_pending?'Precio pendiente':formatMoney(Number(t.base_price))}</strong></div>
      <button type="button" className="treatment-edit-button" onClick={()=>{setEditing(t);setEditorOpen(true);setError('');setSuccess('');}}>Editar tratamiento <span aria-hidden="true">↗</span></button>

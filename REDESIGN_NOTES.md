@@ -1,16 +1,20 @@
+# Estado visual actual
+
+HAUT no utiliza Rewards. El panel actual se concentra en operación, clientes, tratamientos, promociones, sucursales y horarios. La navegación de Usuarios, Bloqueos y Configuración fue retirada para mantener el panel enfocado en las funciones reales del proyecto.
+
 # HAUT Clinical · renovación de experiencia
 
 Esta entrega actualiza los dos frontends existentes y mantiene las rutas, el esquema de Supabase, las migraciones y la lógica de negocio del último proyecto entregado. No usa Expo ni Capacitor.
 
 ## Mobile web (`apps/mobile`)
 - Inicio: carrusel navegable con promociones reales leídas de `promotions`, enlaces hacia tratamiento o listado de promociones. Sin promociones, bienvenida sin oferta ficticia.
-- Accesos directos: citas, planes de tratamiento y Rewards. Próxima cita real y progreso desde los planes asignados.
+- Accesos directos: citas, planes de tratamiento. Próxima cita real y progreso desde los planes asignados.
 - Menú inferior: iconos SVG originales consistentes, estados activos, cinco secciones aprobadas.
 - Catálogo: filtros comerciales existentes + búsqueda por nombre; tarjetas con imágenes guardadas en `treatments.image_url` y estado de imagen pendiente cuando no existe.
 - Detalle: encabezado visual, información, recomendaciones y solicitud por WhatsApp (sin reserva desde el cliente).
 - Citas: tarjetas con fecha, hora, estado, sucursal y detalle accesible; botón de vuelta editorial; enlace al plan cuando corresponde.
 - Mis tratamientos: seguimiento por sesión con progreso calculado a partir de sesiones y enlaces a cita; no crea ni modifica reservas.
-- Rewards, promociones y perfil: diseño renovado y accesos funcionales. Botón de recarga de datos.
+- Promociones y perfil: diseño renovado y accesos funcionales. Botón de recarga de datos.
 
 ## Admin (`apps/admin`)
 - Menú con iconos SVG y estados activos, encabezado y dashboard renovados.

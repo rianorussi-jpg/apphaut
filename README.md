@@ -1,8 +1,16 @@
+## Actualización actual · 3 de octubre de 2026
+
+- HAUT **no utiliza Rewards**: se retiraron del panel, Perfil y carga de datos del cliente; la migración `20261003193000_panel_cleanup_catalog_visibility.sql` elimina también las tablas/funciones de puntos.
+- El panel quedó concentrado en **Inicio, Agenda, Citas, Clientes, Tratamientos, Promociones, Sucursales y Horarios**.
+- Las fichas del directorio muestran **fecha de nacimiento**.
+- `treatments.is_catalog_visible` permite ocultar un tratamiento del catálogo público sin quitarlo de agenda, asignaciones ni planes activos.
+- El detalle de **Mi tratamiento** muestra la descripción del tratamiento antes del progreso de sesiones.
+
 # HAUT Clinical · Admin + Mobile Web
 
 ## Actualización: carrusel fotográfico y encuadre de promociones (20 sep 2026)
 
-- **Mobile → Inicio:** banner con la fotografía completa sin oscurecer, sin título ni descripción superpuestos, flechas e indicadores, y cambio automático cada 5 segundos. El botón **Ver promoción** va debajo de la imagen y abre el detalle de la promoción. La app muestra después **Mis tratamientos → Tu próxima cita → Para descubrir**; se quitaron los accesos rápidos y la tarjeta de Rewards intermedia de Inicio (Rewards sigue disponible en Perfil).
+- **Mobile → Inicio:** banner con la fotografía completa sin oscurecer, sin título ni descripción superpuestos, flechas e indicadores, y cambio automático cada 5 segundos. El botón **Ver promoción** va debajo de la imagen y abre el detalle de la promoción. La app muestra después **Mis tratamientos → Tu próxima cita → Para descubrir**; se quitaron los accesos rápidos y la tarjeta de Rewards intermedia de Inicio; Rewards fue retirado de HAUT.
 - **Admin → Promociones:** nuevo botón **Editar** en cada promoción; permite modificar título, descripción, tratamiento relacionado e imagen sin crear registros duplicados. El editor permite zoom (1–3×), arrastrar, desplazar y previsualizar el encuadre real 16:9. La fotografía se guarda recortada como WebP de **1200 × 675 px** en el bucket `treatment-images`. Las imágenes anteriores permanecen igual hasta que se editen.
 - **Sin SQL nuevo:** se utiliza `promotions.image_url`, los permisos y el bucket existentes. No vuelvas a correr migraciones ni `seed.sql`. No se necesitan variables de entorno adicionales.
 - Sube el proyecto completo a GitHub para actualizar los dos despliegues de Vercel: `apps/admin` y `apps/mobile`. Mantén sus variables de Supabase existentes.
@@ -11,7 +19,7 @@
 ---
 
 
-**Renovación visual y de experiencia (20 de septiembre de 2026):** esta versión incluye carrusel de promociones en Inicio, menú con iconos, fichas de tratamientos, citas, planes, Rewards, perfil y panel Admin renovados. La administración de promociones permite subir fotografía y vincular un tratamiento usando el bucket de imágenes existente. **Si ya tienes las migraciones previas aplicadas, no ejecutes ningún SQL nuevo ni vuelvas a correr el seed.** Reemplaza el código en GitHub y Vercel publicará los dos proyectos. Consulta `REDESIGN_NOTES.md` para los cambios y límites de validación.
+**Renovación visual y de experiencia (20 de septiembre de 2026):** esta versión incluye carrusel de promociones en Inicio, menú con iconos, fichas de tratamientos, citas, planes, perfil y panel Admin renovados. La administración de promociones permite subir fotografía y vincular un tratamiento usando el bucket de imágenes existente. **Si ya tienes las migraciones previas aplicadas, no ejecutes ningún SQL nuevo ni vuelvas a correr el seed.** Reemplaza el código en GitHub y Vercel publicará los dos proyectos. Consulta `REDESIGN_NOTES.md` para los cambios y límites de validación.
 
 ---
 
@@ -91,7 +99,7 @@ Al añadir o cambiar las variables, despliega de nuevo el proyecto. Para usar el
 
 La primera visita muestra Iniciar sesión / Registrarse. Registro solicita nombre, teléfono, correo, contraseña, confirmación y sucursal preferida. Supabase Auth guarda la sesión en el navegador; al volver a abrir la app desde el mismo dispositivo y navegador, no se pide iniciar sesión de nuevo mientras la sesión siga válida, no se borren datos locales ni se cierre sesión. Si se usa navegación privada u otro dispositivo hay que iniciar sesión allí.
 
-Después de ingresar, el cliente ve sus datos **reales** en Supabase: próximas citas e historial, planes/sesiones asignados, promociones publicadas, puntos Rewards y catálogo de tratamientos. No existen citas ficticias y **no hay botón ni ruta de reserva para el cliente**. En el detalle del catálogo se puede solicitar información por WhatsApp.
+Después de ingresar, el cliente ve sus datos **reales** en Supabase: próximas citas e historial, planes/sesiones asignados, promociones publicadas y catálogo de tratamientos. No existen citas ficticias y **no hay botón ni ruta de reserva para el cliente**. En el detalle del catálogo se puede solicitar información por WhatsApp.
 
 ### Trabajo administrativo para poblar la app
 
@@ -281,3 +289,14 @@ Con esto los correos de asignación/cita salen normalmente dentro del siguiente 
 2. Espera hasta un minuto y revisa `notification_jobs`: debe pasar de `queued` → `processing` → `sent`.
 3. Crea una cita: debe crearse un job `appointment_created` y, si la cita es a más de 24 h, otro `appointment_reminder_24h` con `scheduled_at = starts_at - 24 hours`.
 4. Revisa Edge Functions → Logs si un correo queda en `failed`.
+
+## Alta de clientes desde Admin
+
+La pantalla Admin > Clientes incluye **+ Nuevo cliente**. El alta se realiza de forma segura mediante la Edge Function `admin-create-client`, que crea el usuario de Supabase Auth sin contraseña, completa `profiles` (nombre, teléfono, fecha de nacimiento y sucursal) y encola `client_registered` en `notification_jobs`.
+
+Para habilitarlo en producción:
+
+1. Ejecutar `supabase/migrations/20261003173000_admin_client_registration_email.sql`.
+2. Desplegar `supabase/functions/admin-create-client/index.ts` con Verify JWT **activado**.
+3. Volver a desplegar `supabase/functions/process-email-notifications/index.ts` con Verify JWT **desactivado** (lo llama el Cron protegido con `x-haut-worker-secret`).
+4. Opcional pero recomendado: agregar `APP_STORE_URL` y `PLAY_STORE_URL` en Edge Function Secrets. Si todavía no están configuradas, el correo usa `CLIENT_APP_URL` como acceso temporal.
