@@ -1,2 +1,5 @@
-'use client';import {MobileShell} from '@/components/MobileShell';import {useClient} from '@/components/ClientProvider';import {dateLabel,pointsBalance} from '@/lib/client-data';import {Icon} from '@/components/Icon';
-export default function RewardsPage(){const {data}=useClient();return <MobileShell title="Mis rewards" eyebrow="MIS BENEFICIOS · HAUT"><section className="rewards-hero"><span className="eyebrow">HAUT · REWARDS</span><span className="rewards-hero-mark"><Icon name="gift" size={28}/></span><span className="rewards-hero-label">Tu saldo disponible</span><h2>{data?pointsBalance(data):'—'} <span>puntos</span></h2><p>Tu historial de recompensas, en un solo lugar.</p></section><div className="section-title"><div><small>TUS BENEFICIOS</small><h2>Movimientos</h2></div></div>{data?.rewards.length?<div className="rewards-movements">{data.rewards.map(m=><article className="reward-item" key={m.id}><span className="reward-movement-icon"><Icon name={m.points>0?'gift':'arrow'} size={19}/></span><div><strong>{m.description}</strong><p className="subtle">{dateLabel(m.created_at,true)}</p></div><strong className={m.points>0?'reward-positive':'reward-negative'}>{m.points>0?'+':''}{m.points}</strong></article>)}</div>:<div className="empty-feature compact"><Icon name="gift" size={25}/><h3>Tus puntos aparecerán aquí.</h3><p>Consulta tu historial cuando HAUT registre tus primeros movimientos.</p></div>}</MobileShell>}
+import { redirect } from 'next/navigation';
+
+export default function RewardsRedirectPage() {
+  redirect('/perfil');
+}
