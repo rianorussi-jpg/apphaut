@@ -38,11 +38,12 @@ export default function TreatmentDetail(){
  const backHref=t.is_package?'/':'/tratamientos';
  const backLabel=t.is_package?'Paquetes':'Explorar tratamientos';
  const canBuy=t.is_sold_in_app&&!assigned;
+ const checkoutTreatmentId=t.id;
  async function buy(){
   if(!supabase||!canBuy)return;
   setBuying(true);setPurchaseError('');
   try{
-   const {data:checkout,error}=await supabase.functions.invoke('create-treatment-checkout',{body:{treatment_id:t.id}});
+   const {data:checkout,error}=await supabase.functions.invoke('create-treatment-checkout',{body:{treatment_id:checkoutTreatmentId}});
    if(error)throw error;
    if(!checkout?.url)throw new Error(checkout?.error||'No se pudo abrir el pago.');
    window.location.assign(checkout.url);
