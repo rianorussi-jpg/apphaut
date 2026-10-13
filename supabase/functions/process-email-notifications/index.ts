@@ -26,6 +26,8 @@ const supabaseUrl = env('SUPABASE_URL')
 const serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY')
 const workerSecret = env('EMAIL_WORKER_SECRET')
 const clientAppUrl = (Deno.env.get('CLIENT_APP_URL') || '').replace(/\/$/, '')
+const appStoreUrl = (Deno.env.get('APP_STORE_URL') || '').trim()
+const playStoreUrl = (Deno.env.get('PLAY_STORE_URL') || '').trim()
 
 const smtpHost = env('SMTP_HOSTNAME')
 const smtpPort = Number(env('SMTP_PORT', '465'))
@@ -100,6 +102,50 @@ async function getRecipient(userId: string) {
   return {
     email,
     name: profile?.full_name?.trim() || 'Hola',
+  }
+}
+
+async function clientRegistered(job: NotificationJob): Promise<EmailMessage | null> {
+  const recipient = await getRecipient(job.user_id)
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('preferred_branch_id')
+    .eq('id', job.user_id)
+    .maybeSingle()
+  if (profileError) throw profileError
+
+  const { data: branch, error: branchError } = profile?.preferred_branch_id
+    ? await supabase.from('branches').select('name').eq('id', profile.preferred_branch_id).maybeSingle()
+    : { data: null, error: null }
+  if (branchError) throw branchError
+
+  const storeButtons = [
+    appStoreUrl ? button('Descargar en App Store', appStoreUrl) : '',
+    playStoreUrl ? button('Descargar en Google Play', playStoreUrl) : '',
+  ].filter(Boolean).join('\n')
+  const fallbackButton = !storeButtons && clientAppUrl ? button('Abrir HAUT', clientAppUrl) : ''
+  const branchLine = branch?.name
+    ? `<p style="margin:8px 0;color:#756C5E"><strong style="color:#25211B">Sucursal:</strong> ${esc(branch.name)}</p>`
+    : ''
+
+  const body = `
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:32px;line-height:1.12;margin:8px 0 18px;font-weight:500">Bienvenido a HAUT.</h1>
+    <p style="font-size:16px;line-height:1.7;margin:0 0 20px">Hola ${esc(recipient.name)}, tu registro en <strong>HAUT Clinical Center</strong> ha sido creado correctamente.</p>
+    <div style="background:#FBF5E8;border:1px solid #EADFC9;border-radius:16px;padding:18px 20px;margin:18px 0">
+      <p style="margin:0 0 10px"><strong>Tu cuenta HAUT ya está lista</strong></p>
+      ${branchLine}
+      <p style="margin:8px 0;color:#756C5E;line-height:1.6">Desde la aplicación podrás llevar el control de tus citas y tratamientos, consultar tu avance y recibir promociones de HAUT.</p>
+    </div>
+    <p style="font-size:14px;line-height:1.65;color:#756C5E">Para entrar usa este mismo correo. Te enviaremos un código de 6 dígitos; no necesitas crear contraseña ni volver a llenar tus datos.</p>
+    <p style="font-size:14px;line-height:1.65;color:#756C5E"><strong style="color:#25211B">Descarga HAUT en tu dispositivo:</strong></p>
+    ${storeButtons || fallbackButton}
+  `
+
+  const links = [appStoreUrl ? `App Store: ${appStoreUrl}` : '', playStoreUrl ? `Google Play: ${playStoreUrl}` : '', !appStoreUrl && !playStoreUrl && clientAppUrl ? `Abrir HAUT: ${clientAppUrl}` : ''].filter(Boolean).join(' · ')
+  return {
+    subject: 'Bienvenido a HAUT',
+    html: frame('Tu cuenta HAUT ya está lista.', body),
+    text: `Hola ${recipient.name}. Tu registro en HAUT Clinical Center ha sido creado. Desde la aplicación podrás consultar citas, tratamientos, avance y promociones. Para entrar usa este mismo correo y solicita tu código de 6 dígitos.${branch?.name ? ` Sucursal: ${branch.name}.` : ''}${links ? ` ${links}` : ''}`,
   }
 }
 
@@ -218,6 +264,8 @@ async function appointmentEmail(job: NotificationJob, reminder: boolean): Promis
 
 async function renderJob(job: NotificationJob): Promise<EmailMessage | null> {
   switch (job.template_key) {
+    case 'client_registered':
+      return clientRegistered(job)
     case 'treatment_assigned':
       return treatmentAssigned(job)
     case 'appointment_created':

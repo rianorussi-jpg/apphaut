@@ -1,6 +1,6 @@
 export type Profile = {id:string; full_name:string|null; phone:string|null; birth_date:string|null; preferred_branch_id:string|null};
 export type Branch = {id:string; name:string; slug:string; phone:string|null; address:string|null; google_review_url?:string|null};
-export type Treatment = {id:string; name:string; category_id:string|null; description:string|null; short_description:string|null; image_url:string|null; base_price:number|string; default_duration_minutes:number; default_session_count:number; is_featured:boolean; is_catalog_visible:boolean; catalog_details_pending:boolean; recommendations:string|null; contraindications:string|null};
+export type Treatment = {id:string; name:string; category_id:string|null; description:string|null; short_description:string|null; image_url:string|null; base_price:number|string; default_duration_minutes:number; default_session_count:number; is_featured:boolean; is_catalog_visible:boolean; is_sold_in_app:boolean; is_package:boolean; purchase_session_count:number|null; purchase_duration_minutes:number|null; catalog_details_pending:boolean; recommendations:string|null; contraindications:string|null};
 export type Category = {id:string; name:string; sort_order:number; slug:string};
 export type Plan = {id:string; treatment_id:string; client_id:string; default_branch_id:string|null; total_sessions:number; status:string; started_at:string|null; recommended_interval_days:number|null; created_at:string};
 export type Session = {id:string; plan_id:string; session_number:number; status:string; completed_at:string|null};

@@ -7,7 +7,8 @@ export type TreatmentRecord = {
   id:string;name:string;short_description:string|null;description:string|null;image_url:string|null;
   base_price:number|string;default_duration_minutes:number;default_session_count:number;
   recommended_interval_days:number|null;is_active:boolean;is_featured:boolean;
-  catalog_details_pending:boolean;is_catalog_visible:boolean;category_id:string|null;
+  catalog_details_pending:boolean;is_catalog_visible:boolean;is_sold_in_app:boolean;is_package:boolean;
+  purchase_session_count:number|null;purchase_duration_minutes:number|null;category_id:string|null;
 };
 type Category={id:string;name:string;slug:string};
 type Branch={id:string;name:string};
@@ -27,6 +28,10 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
  const [featured,setFeatured]=useState(treatment?.is_featured??false);
  const [active,setActive]=useState(treatment?.is_active??true);
  const [catalogVisible,setCatalogVisible]=useState(treatment?.is_catalog_visible??true);
+ const [soldInApp,setSoldInApp]=useState(treatment?.is_sold_in_app??false);
+ const [showAsPackage,setShowAsPackage]=useState(treatment?.is_package??false);
+ const [purchaseSessions,setPurchaseSessions]=useState(treatment?.purchase_session_count?String(treatment.purchase_session_count):'');
+ const [purchaseDuration,setPurchaseDuration]=useState(treatment?.purchase_duration_minutes?String(treatment.purchase_duration_minutes):'');
  const [imageUrl,setImageUrl]=useState(treatment?.image_url??'');
  const [file,setFile]=useState<File|null>(null);
  const [preview,setPreview]=useState(treatment?.image_url??'');
@@ -73,6 +78,11 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
   if(duration!==''&&(!Number.isInteger(Number(duration))||Number(duration)<1)){setError('La duración debe ser un número entero mayor a 0.');return;}
   if(sessions!==''&&(!Number.isInteger(Number(sessions))||Number(sessions)<1)){setError('El número de sesiones debe ser un entero mayor a 0.');return;}
   if(interval!==''&&(!Number.isInteger(Number(interval))||Number(interval)<0)){setError('El intervalo recomendado debe ser un entero mayor o igual a 0.');return;}
+  if(soldInApp){
+   if(price===''||Number(price)<=0){setError('Para venderlo en la app agrega un precio mayor a $0.');return;}
+   if(!['1','3','5','8','10'].includes(purchaseSessions)){setError('Selecciona cuántas sesiones incluye la compra.');return;}
+   if(!['15','30','45','60','85'].includes(purchaseDuration)){setError('Selecciona la duración por sesión de la compra.');return;}
+  }
   if(!validBranches){setError('Selecciona por lo menos una cabina compatible en cada sucursal marcada.');return;}
   setSaving(true);
   try{
@@ -94,7 +104,9 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
      default_duration_minutes:duration===''?(treatment?Number(treatment.default_duration_minutes):60):Number(duration),
      default_session_count:sessions===''?(treatment?Number(treatment.default_session_count):1):Number(sessions),
      recommended_interval_days:interval===''?null:Number(interval),
-     is_featured:featured,is_active:active,is_catalog_visible:catalogVisible,catalog_details_pending:detailsPending,image_url:finalImageUrl,
+     is_featured:featured,is_active:active,is_catalog_visible:catalogVisible,is_sold_in_app:soldInApp,is_package:showAsPackage,
+     purchase_session_count:soldInApp?Number(purchaseSessions):null,purchase_duration_minutes:soldInApp?Number(purchaseDuration):null,
+     catalog_details_pending:detailsPending,image_url:finalImageUrl,
    };
    let treatmentId=treatment?.id;
    if(treatmentId){
@@ -173,7 +185,14 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
       </div>
       <div className="editor-section editor-settings"><p className="editor-section-label">Publicación</p>
        <label className="editor-toggle"><input type="checkbox" checked={featured} onChange={e=>setFeatured(e.target.checked)}/><span><strong>Destacar en Favoritos</strong><small>Puede aparecer entre las recomendaciones de HAUT cuando también está visible en catálogo.</small></span></label>
-       <label className="editor-toggle"><input type="checkbox" checked={catalogVisible} onChange={e=>setCatalogVisible(e.target.checked)}/><span><strong>Mostrar en catálogo</strong><small>Si lo desactivas, se oculta de la lista pública de tratamientos, pero sigue disponible para asignar, agendar y consultar dentro de los planes de clientes.</small></span></label>
+       <label className="editor-toggle"><input type="checkbox" checked={catalogVisible} onChange={e=>setCatalogVisible(e.target.checked)}/><span><strong>Mostrar en catálogo</strong><small>Lo muestra en la lista normal de Tratamientos. Si también marcas “Mostrar en paquetes”, Paquetes tendrá prioridad y se ocultará de esa lista.</small></span></label>
+       <label className="editor-toggle"><input type="checkbox" checked={showAsPackage} onChange={e=>setShowAsPackage(e.target.checked)}/><span><strong>Mostrar en paquetes</strong><small>Aparece en la sección Paquetes de Inicio y deja de mostrarse en la lista normal de Tratamientos.</small></span></label>
+       <label className="editor-toggle"><input type="checkbox" checked={soldInApp} onChange={e=>setSoldInApp(e.target.checked)}/><span><strong>Vender en la app</strong><small>Muestra el botón Comprar en el detalle. El plan se crea únicamente después de que el pago sea confirmado.</small></span></label>
+       {soldInApp&&<div className="editor-sale-config">
+        <label className="form-field">Sesiones incluidas<select value={purchaseSessions} onChange={e=>setPurchaseSessions(e.target.value)}><option value="">Selecciona</option>{[1,3,5,8,10].map(value=><option key={value} value={value}>{value} {value===1?'sesión':'sesiones'}</option>)}</select></label>
+        <label className="form-field">Duración por sesión<select value={purchaseDuration} onChange={e=>setPurchaseDuration(e.target.value)}><option value="">Selecciona</option>{[15,30,45,60,85].map(value=><option key={value} value={value}>{value} minutos</option>)}</select></label>
+        <small className="muted">Estos valores sí definen el plan que recibe el cliente al pagar. Son independientes de las sesiones y duración informativas del catálogo.</small>
+       </div>}
        <label className="editor-toggle"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/><span><strong>Tratamiento activo</strong><small>Disponible operativamente para asignaciones, agenda y planes. Desactívalo solo si HAUT deja de ofrecerlo.</small></span></label>
       </div>
      </aside></div>
