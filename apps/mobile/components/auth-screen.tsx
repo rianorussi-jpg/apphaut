@@ -4,6 +4,7 @@ import {FormEvent,useEffect,useState} from 'react';
 import {supabase} from '@/lib/supabase';
 
 type Step='email'|'code';
+const APPLE_REVIEW_EMAIL='apple-review@haut.com.mx';
 
 export function AuthScreen({error:initialError=''}:{error?:string}){
   const [step,setStep]=useState<Step>('email');
@@ -27,15 +28,14 @@ export function AuthScreen({error:initialError=''}:{error?:string}){
     if(!supabase){setError('Supabase no está configurado.');return;}
     setSaving(true);
     try{
-      const {error:e}=await supabase.auth.signInWithOtp({
-        email:normalized,
-        options:{shouldCreateUser:true}
-      });
+      if(normalized===APPLE_REVIEW_EMAIL){
+        setEmail(normalized);setCode('');setStep('code');setResendIn(0);
+        setMessage('Ingresa el código de revisión proporcionado a App Review.');
+        return;
+      }
+      const {error:e}=await supabase.auth.signInWithOtp({email:normalized,options:{shouldCreateUser:true}});
       if(e)throw e;
-      setEmail(normalized);
-      setCode('');
-      setStep('code');
-      setResendIn(60);
+      setEmail(normalized);setCode('');setStep('code');setResendIn(60);
       setMessage('Te enviamos un código de 6 dígitos. Revisa tu correo.');
     }catch(e){
       setError(e instanceof Error?e.message:'No pudimos enviar el código. Inténtalo nuevamente.');
@@ -49,7 +49,17 @@ export function AuthScreen({error:initialError=''}:{error?:string}){
     if(token.length!==6){setError('Escribe el código de 6 dígitos.');return;}
     setSaving(true);
     try{
-      const {error:e}=await supabase.auth.verifyOtp({email:email.trim().toLowerCase(),token,type:'email'});
+      const normalized=email.trim().toLowerCase();
+      if(normalized===APPLE_REVIEW_EMAIL){
+        const {data,error:functionError}=await supabase.functions.invoke('apple-review-login',{body:{email:normalized,code:token}});
+        if(functionError)throw functionError;
+        const tokenHash=data?.token_hash as string|undefined;
+        if(!tokenHash)throw new Error(data?.error||'No pudimos preparar la cuenta de revisión.');
+        const {error:verifyError}=await supabase.auth.verifyOtp({token_hash:tokenHash,type:'email'});
+        if(verifyError)throw verifyError;
+        return;
+      }
+      const {error:e}=await supabase.auth.verifyOtp({email:normalized,token,type:'email'});
       if(e)throw e;
     }catch(e){
       setError(e instanceof Error?e.message:'El código no es válido o ya expiró.');
@@ -58,29 +68,18 @@ export function AuthScreen({error:initialError=''}:{error?:string}){
 
   if(step==='code')return <main className="auth-wrap"><section className="auth-card otp-card">
     <img className="auth-logo" src="/logo.png" alt="HAUT Clinical Center"/>
-    <h1>Revisa tu correo</h1>
-    <p className="subtle auth-copy">Escribe el código de 6 dígitos que enviamos a <strong>{email}</strong>.</p>
+    <h1>{email===APPLE_REVIEW_EMAIL?'Acceso de revisión':'Revisa tu correo'}</h1>
+    <p className="subtle auth-copy">{email===APPLE_REVIEW_EMAIL?'Escribe el código de acceso proporcionado para la revisión de la app.':<>Escribe el código de 6 dígitos que enviamos a <strong>{email}</strong>.</>}</p>
     <form onSubmit={verifyCode} className="auth-form otp-form">
       <label className="otp-label">Código de acceso
-        <input
-          className="otp-input"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]*"
-          maxLength={6}
-          value={code}
-          onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))}
-          placeholder="000000"
-          autoFocus
-          required
-        />
+        <input className="otp-input" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" autoFocus required/>
       </label>
       {error&&<p className="form-error" role="alert">{error}</p>}
       {message&&<p className="form-success" role="status">{message}</p>}
       <button type="submit" disabled={saving||code.length!==6} className="primary-button">{saving?'Verificando…':'Entrar a mi cuenta'}</button>
       <div className="otp-actions">
         <button type="button" className="text-button" onClick={()=>{setStep('email');setCode('');setError('');setMessage('');}}>Usar otro correo</button>
-        <button type="button" className="text-button" disabled={saving||resendIn>0} onClick={()=>void sendCode()}>{resendIn>0?`Reenviar en ${resendIn}s`:'Reenviar código'}</button>
+        {email!==APPLE_REVIEW_EMAIL&&<button type="button" className="text-button" disabled={saving||resendIn>0} onClick={()=>void sendCode()}>{resendIn>0?`Reenviar en ${resendIn}s`:'Reenviar código'}</button>}
       </div>
     </form>
     <p className="small-print">Tu sesión permanecerá iniciada en este dispositivo hasta que cierres sesión.</p>
@@ -91,9 +90,7 @@ export function AuthScreen({error:initialError=''}:{error?:string}){
     <h1>Tu espacio Haut</h1>
     <p className="subtle auth-copy">Consulta tus tratamientos, próximas citas y paquetes disponibles.</p>
     <form onSubmit={e=>{e.preventDefault();void sendCode();}} className="auth-form email-only-form">
-      <label>Correo
-        <input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" autoFocus/>
-      </label>
+      <label>Correo<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" autoFocus/></label>
       {error&&<p className="form-error" role="alert">{error}</p>}
       {message&&<p className="form-success" role="status">{message}</p>}
       <button type="submit" disabled={saving} className="primary-button">{saving?'Enviando código…':'Continuar'}</button>

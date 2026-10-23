@@ -19,6 +19,7 @@ export function ClientProvider({children}:{children:React.ReactNode}){
   const [dataLoading,setDataLoading]=useState(false);
   const [error,setError]=useState('');
   const pathname=usePathname();const router=useRouter();
+  const publicPage=pathname==='/terminos'||pathname==='/privacidad'||pathname==='/soporte';
   useEffect(()=>{
     if(!supabase){setError('Configura las variables NEXT_PUBLIC_SUPABASE_* en Vercel.');setAuthLoading(false);return;}
     let alive=true;
@@ -45,6 +46,7 @@ export function ClientProvider({children}:{children:React.ReactNode}){
   },[session?.user.id,refresh]);
   useEffect(()=>{if(session && (pathname==='/acceso'||pathname==='/registro'))router.replace('/');},[session,pathname,router]);
   async function signOut(){if(supabase)await supabase.auth.signOut();setData(null);router.replace('/acceso');}
+  if(publicPage)return <>{children}</>;
   if(authLoading)return <div className="auth-wrap"><div className="auth-card"><p className="brand-kicker">HAUT CLINICAL</p><p>Comprobando tu sesión…</p></div></div>;
   if(!session)return <AuthScreen key={pathname} error={error}/>;
   if(dataLoading && !data)return <div className="auth-wrap"><div className="auth-card"><p className="brand-kicker">HAUT CLINICAL</p><p>Cargando tu información…</p></div></div>;
