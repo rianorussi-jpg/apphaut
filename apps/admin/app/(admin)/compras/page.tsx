@@ -6,7 +6,7 @@ import {Icon} from '../../../components/Icon';
 
 type PurchaseRequest={
  id:string;user_id:string;treatment_id:string;branch_id:string;plan_id:string|null;
- status:'pending'|'contacted'|'assigned'|'cancelled';session_count:number;duration_minutes:number;
+ status:'pending'|'contacted'|'assigned'|'cancelled';session_count:number|null;duration_minutes:number|null;
  quoted_amount:number|string;contacted_at:string|null;assigned_at:string|null;created_at:string;
 };
 type Profile={id:string;full_name:string|null;phone:string|null};
@@ -16,6 +16,8 @@ type Branch={id:string;name:string;phone:string|null};
 type PurchaseView=PurchaseRequest&{clientName:string;clientPhone:string|null;treatmentName:string;branchName:string};
 
 const money=(value:number|string)=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Number(value)||0);
+const sessionOptions=[1,3,5,8,10];
+const durationOptions=[15,30,45,60,85];
 const dateTime=(value:string)=>new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Mexico_City'}).format(new Date(value));
 function whatsappHref(phone:string|null,name:string,treatment:string){
  let digits=(phone||'').replace(/\D/g,'');
@@ -30,6 +32,9 @@ export default function PurchasesPage(){
  const [items,setItems]=useState<PurchaseView[]>([]);
  const [loading,setLoading]=useState(true);
  const [workingId,setWorkingId]=useState<string|null>(null);
+ const [configuringId,setConfiguringId]=useState<string|null>(null);
+ const [draftSessions,setDraftSessions]=useState('');
+ const [draftDuration,setDraftDuration]=useState('');
  const [error,setError]=useState('');
  const [success,setSuccess]=useState('');
 
@@ -83,12 +88,29 @@ export default function PurchasesPage(){
   await load();
  }
 
+ function beginAssign(item:PurchaseView){
+  setError('');setSuccess('');
+  if(item.session_count&&item.duration_minutes){
+   void assign(item.id);
+   return;
+  }
+  setConfiguringId(item.id);
+  setDraftSessions(item.session_count?String(item.session_count):'');
+  setDraftDuration(item.duration_minutes?String(item.duration_minutes):'');
+ }
+
  async function assign(id:string){
   if(!supabase)return;
+  const item=items.find(row=>row.id===id);
+  if(!item)return;
+  const sessions=item.session_count??(draftSessions?Number(draftSessions):null);
+  const duration=item.duration_minutes??(draftDuration?Number(draftDuration):null);
+  if(!sessions||!duration){setError('Define las sesiones y la duración antes de asignar el tratamiento.');return;}
   setWorkingId(id);setError('');setSuccess('');
-  const {error:rpcError}=await supabase.rpc('admin_assign_purchase_request',{p_request_id:id});
+  const {error:rpcError}=await supabase.rpc('admin_assign_purchase_request',{p_request_id:id,p_session_count:sessions,p_duration_minutes:duration});
   setWorkingId(null);
   if(rpcError){setError(rpcError.message);return;}
+  setConfiguringId(null);setDraftSessions('');setDraftDuration('');
   setSuccess('Tratamiento asignado correctamente. Ya aparece en Mis tratamientos y no se creó ninguna cita.');
   await load();
  }
@@ -99,15 +121,16 @@ export default function PurchasesPage(){
   return <article className="purchase-request-card">
    <div className="purchase-request-main">
     <div className="purchase-request-heading"><div><span className={`purchase-state purchase-${item.status}`}>{item.status==='pending'?'Pendiente de contacto':item.status==='contacted'?'Contactado':item.status==='assigned'?'Asignado':'Cancelado'}</span><h3>{item.clientName}</h3></div>{Number(item.quoted_amount)>0&&<strong>{money(item.quoted_amount)}</strong>}</div>
-    <div className="purchase-request-treatment"><span className="purchase-request-icon"><Icon name="sparkles" size={18}/></span><div><strong>{item.treatmentName}</strong><span>{item.session_count} {item.session_count===1?'sesión':'sesiones'} · {item.duration_minutes} min por sesión</span></div></div>
+    <div className="purchase-request-treatment"><span className="purchase-request-icon"><Icon name="sparkles" size={18}/></span><div><strong>{item.treatmentName}</strong><span>{item.session_count?`${item.session_count} ${item.session_count===1?'sesión':'sesiones'}`:'Sesiones por confirmar'} · {item.duration_minutes?`${item.duration_minutes} min por sesión`:'Duración por confirmar'}</span></div></div>
     <div className="purchase-request-meta"><span><b>Sucursal</b>{item.branchName}</span><span><b>Teléfono</b>{item.clientPhone||'Sin teléfono'}</span><span><b>Solicitud</b>{dateTime(item.created_at)}</span>{item.contacted_at&&<span><b>Contactado</b>{dateTime(item.contacted_at)}</span>}</div>
    </div>
    <div className="purchase-request-actions">
     {wa?<a className="secondary-button" href={wa} target="_blank" rel="noopener noreferrer"><Icon name="chat" size={16}/> Enviar WhatsApp</a>:<button className="secondary-button" type="button" disabled>Sin WhatsApp</button>}
     {item.status==='pending'&&<button className="secondary-button" type="button" onClick={()=>void markContacted(item.id)} disabled={busy}>{busy?'Guardando…':'Marcar contactado'}</button>}
-    {item.status!=='assigned'&&item.status!=='cancelled'&&<button className="primary-button" type="button" onClick={()=>void assign(item.id)} disabled={busy}>{busy?'Asignando…':'Asignar tratamiento'}</button>}
+    {item.status!=='assigned'&&item.status!=='cancelled'&&<button className="primary-button" type="button" onClick={()=>beginAssign(item)} disabled={busy}>{busy?'Asignando…':'Asignar tratamiento'}</button>}
     {item.status==='assigned'&&<span className="purchase-assigned-note"><Icon name="check" size={16}/> Tratamiento asignado</span>}
    </div>
+   {configuringId===item.id&&<div className="purchase-assign-config"><div><strong>Completa el plan antes de asignarlo</strong><p>Estos datos no estaban definidos en la ficha del tratamiento. Solo se piden ahora para crear correctamente el plan del cliente.</p></div>{!item.session_count&&<div className="plan-config-field"><span>Sesiones del plan</span><div className="session-choice-row">{sessionOptions.map(option=><button key={option} type="button" className={draftSessions===String(option)?'selected':''} onClick={()=>setDraftSessions(String(option))}>{option}</button>)}</div></div>}{!item.duration_minutes&&<label className="form-field">Duración por sesión<select value={draftDuration} onChange={e=>setDraftDuration(e.target.value)}><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select></label>}<div className="purchase-assign-config-actions"><button type="button" className="secondary-button" onClick={()=>{setConfiguringId(null);setDraftSessions('');setDraftDuration('');}}>Cancelar</button><button type="button" className="primary-button" disabled={busy||(!item.session_count&&!draftSessions)||(!item.duration_minutes&&!draftDuration)} onClick={()=>void assign(item.id)}>{busy?'Asignando…':'Confirmar y asignar'}</button></div></div>}
   </article>;
  }
 
