@@ -10,7 +10,7 @@ export async function loadClientData(userId:string):Promise<ClientData>{
     supabase.from('treatment_categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
     supabase.from('client_treatment_plans').select('id,treatment_id,client_id,default_branch_id,total_sessions,status,started_at,recommended_interval_days,informative_note,created_at').eq('client_id',userId).order('created_at',{ascending:false}),
     supabase.from('appointments').select('id,plan_session_id,branch_id,starts_at,ends_at,status').order('starts_at',{ascending:false}).limit(500),
-    supabase.from('treatment_purchase_requests').select('id,user_id,treatment_id,branch_id,plan_id,status,session_count,duration_minutes,quoted_amount,contacted_at,assigned_at,created_at').eq('user_id',userId).order('created_at',{ascending:false}).limit(100),
+    supabase.from('treatment_purchase_requests').select('id,user_id,treatment_id,branch_id,plan_id,status,session_count,duration_minutes,quoted_amount,uses_welcome_coupon,coupon_discount_percent,contacted_at,assigned_at,created_at').eq('user_id',userId).order('created_at',{ascending:false}).limit(100),
     supabase.from('treatment_branches').select('treatment_id').eq('is_active',true)
   ]);
   const results = [profile,branches,treatments,categories,plans,appointments,purchaseRequests,availability];
@@ -36,6 +36,13 @@ export const upcomingForPlan=(d:ClientData,plan:Plan)=>d.appointments.filter(a=>
 export const completedCount=(d:ClientData,plan:Plan)=>d.sessions.filter(s=>s.plan_id===plan.id&&s.status==='completed').length;
 export const statusLabel=(status:string)=>({pending:'Pendiente',confirmed:'Confirmada',arrived:'Llegó',completed:'Finalizada',cancelled:'Cancelada',no_show:'No asistió',active:'En progreso',paused:'Pausado',available:'Disponible',locked:'Pendiente',scheduled:'Agendada',voided:'Anulada'} as Record<string,string>)[status]??status;
 export const currency=(value:number|string)=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Number(value)||0);
+export const welcomeCouponAvailable=(d:ClientData)=>{
+  const hasAssignedPurchase=d.purchaseRequests.some(r=>r.status==='assigned');
+  const hasReservedCoupon=d.purchaseRequests.some(r=>r.uses_welcome_coupon&&r.status!=='cancelled');
+  return !hasAssignedPurchase&&!hasReservedCoupon;
+};
+export const welcomeCouponDiscount=(value:number|string,percent=10)=>Math.max(0,Number(value)||0)*(1-percent/100);
+
 export function whatsappHref(name:string, branchPhone?:string|null){
   const raw=process.env.NEXT_PUBLIC_HAUT_WHATSAPP_NUMBER || branchPhone || '';
   let phone=raw.replace(/\D/g,'');
