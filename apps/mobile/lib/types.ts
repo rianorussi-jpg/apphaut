@@ -6,4 +6,5 @@ export type Plan = {id:string; treatment_id:string; client_id:string; default_br
 export type Session = {id:string; plan_id:string; session_number:number; status:string; completed_at:string|null};
 export type Appointment = {id:string; plan_session_id:string; branch_id:string; starts_at:string; ends_at:string; status:string};
 export type Promotion = {id:string; title:string; description:string|null; image_url:string|null; treatment_id:string|null; branch_id:string|null};
-export type ClientData = {profile:Profile|null; branches:Branch[]; treatments:Treatment[]; categories:Category[]; plans:Plan[]; sessions:Session[]; appointments:Appointment[]; promotions:Promotion[]; availableTreatmentIds:Set<string>};
+export type PurchaseRequest = {id:string; user_id:string; treatment_id:string; branch_id:string; plan_id:string|null; status:'pending'|'contacted'|'assigned'|'cancelled'; session_count:number; duration_minutes:number; quoted_amount:number|string; contacted_at:string|null; assigned_at:string|null; created_at:string};
+export type ClientData = {profile:Profile|null; branches:Branch[]; treatments:Treatment[]; categories:Category[]; plans:Plan[]; sessions:Session[]; appointments:Appointment[]; promotions:Promotion[]; purchaseRequests:PurchaseRequest[]; availableTreatmentIds:Set<string>};

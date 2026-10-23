@@ -1,7 +1,7 @@
 'use client';
 import {useParams} from 'next/navigation';
 import Link from 'next/link';
-import {useEffect,useState} from 'react';
+import {useState} from 'react';
 import {MobileShell} from '@/components/MobileShell';
 import {useClient} from '@/components/ClientProvider';
 import {currency,whatsappHref} from '@/lib/client-data';
@@ -13,42 +13,30 @@ export default function TreatmentDetail(){
  const {treatmentId}=useParams<{treatmentId:string}>();
  const {data,refresh}=useClient();
  const [buying,setBuying]=useState(false);
- const [purchaseReturning,setPurchaseReturning]=useState(false);
  const [purchaseError,setPurchaseError]=useState('');
  const [purchaseMessage,setPurchaseMessage]=useState('');
  const t=data?.treatments.find(t=>t.id===treatmentId);
- useEffect(()=>{
-  const compra=new URLSearchParams(window.location.search).get('compra');
-  if(compra==='pendiente'){setPurchaseMessage('Tu pago está pendiente de confirmación en Mercado Pago. El tratamiento aparecerá en Mis tratamientos cuando quede acreditado.');return;}
-  if(compra==='fallida'){setPurchaseMessage('El pago no se completó. Puedes intentarlo nuevamente cuando quieras.');return;}
-  if(compra!=='exitosa')return;
-  setPurchaseMessage('Pago recibido. Estamos confirmándolo con Mercado Pago…');
-  setPurchaseReturning(true);
-  void refresh();
-  const t1=window.setTimeout(()=>void refresh(),1800);
-  const t2=window.setTimeout(()=>void refresh(),4500);
-  const t3=window.setTimeout(()=>{void refresh();setPurchaseReturning(false);},8000);
-  return()=>{window.clearTimeout(t1);window.clearTimeout(t2);window.clearTimeout(t3);};
- },[refresh]);
  if(!data)return <MobileShell title="Tratamiento"><div className="empty-card">Cargando información…</div></MobileShell>;
  if(!t)return <MobileShell title="Tratamiento"><BackLink href="/tratamientos" label="Catálogo"/><div className="empty-card">No encontramos este tratamiento.</div></MobileShell>;
  const phone=data.branches.find(b=>b.id===data.profile?.preferred_branch_id)?.phone;
  const whatsapp=whatsappHref(t.name,phone);
  const assigned=data.plans.find(p=>p.treatment_id===t.id&&['active','paused'].includes(p.status));
+ const openRequest=data.purchaseRequests.find(r=>r.treatment_id===t.id&&['pending','contacted'].includes(r.status));
  const backHref=t.is_package?'/':'/tratamientos';
  const backLabel=t.is_package?'Paquetes':'Explorar tratamientos';
- const canBuy=t.is_sold_in_app&&!assigned;
- const checkoutTreatmentId=t.id;
+ const canBuy=t.is_sold_in_app&&!assigned&&!openRequest;
+ const requestTreatmentId=t.id;
  async function buy(){
   if(!supabase||!canBuy)return;
-  setBuying(true);setPurchaseError('');
+  setBuying(true);setPurchaseError('');setPurchaseMessage('');
   try{
-   const {data:checkout,error}=await supabase.functions.invoke('create-treatment-checkout',{body:{treatment_id:checkoutTreatmentId}});
+   const {error}=await supabase.rpc('request_treatment_purchase',{p_treatment_id:requestTreatmentId});
    if(error)throw error;
-   if(!checkout?.url)throw new Error(checkout?.error||'No se pudo abrir el pago.');
-   window.location.assign(checkout.url);
+   setPurchaseMessage('Te contactaremos por WhatsApp en máximo 24 horas para concretar la compra.');
+   await refresh();
   }catch(error){
-   setPurchaseError(error instanceof Error?error.message:'No se pudo iniciar la compra.');
+   setPurchaseError(error instanceof Error?error.message:'No se pudo registrar tu solicitud de compra.');
+  }finally{
    setBuying(false);
   }
  }
@@ -58,7 +46,7 @@ export default function TreatmentDetail(){
   <div className="detail-intro"><span className="eyebrow">TU EXPERIENCIA HAUT</span><h2 className="detail-title">{t.name}</h2></div>
   <div className="detail-facts"><div><Icon name="calendar" size={20}/><span>Sesiones</span><strong>{t.catalog_details_pending?'Por confirmar':t.default_session_count}</strong></div><div><Icon name="clock" size={20}/><span>Duración</span><strong>{t.catalog_details_pending?'Por confirmar':`${t.default_duration_minutes} min`}</strong></div><div><Icon name="info" size={20}/><span>Inversión</span><strong>{t.catalog_details_pending?'Consultar':currency(t.base_price)}</strong></div></div>
   {!t.catalog_details_pending&&<p className="detail-variation-note">Sesiones y duración de referencia · pueden variar según el plan indicado para ti.</p>}
-  {t.is_sold_in_app&&<section className="purchase-card"><span className="eyebrow">COMPRA DIRECTA · HAUT</span><div className="purchase-card-top"><div><h3>{assigned?'Ya forma parte de tus tratamientos':'Adquiérelo desde la app'}</h3>{!assigned&&<p>Tu compra incluye <strong>{t.purchase_session_count} {t.purchase_session_count===1?'sesión':'sesiones'}</strong> de <strong>{t.purchase_duration_minutes} min</strong>. HAUT programará tu primera cita después de la compra.</p>}</div><strong className="purchase-price">{currency(t.base_price)}</strong></div>{purchaseMessage&&<div className="alert">{purchaseMessage}</div>}{purchaseError&&<div className="alert error-alert" role="alert">{purchaseError}</div>}{assigned?<Link className="primary-button" href={`/mis-tratamientos/${assigned.id}`}>Ver mi tratamiento <Icon name="forward" size={17}/></Link>:purchaseReturning?<button type="button" className="primary-button" disabled>Confirmando tu compra…</button>:<button type="button" className="primary-button" onClick={()=>void buy()} disabled={buying}>{buying?'Abriendo pago…':'Comprar'} <Icon name="arrow" size={17}/></button>}<small>El tratamiento se agrega a “Mis tratamientos” únicamente cuando el pago queda confirmado. La compra no crea una cita automáticamente.</small></section>}
+  {t.is_sold_in_app&&<section className="purchase-card"><span className="eyebrow">COMPRA · HAUT</span><div className="purchase-card-top"><div><h3>{assigned?'Ya forma parte de tus tratamientos':openRequest?'Solicitud recibida':'Solicita tu compra'}</h3>{!assigned&&<p>Incluye <strong>{t.purchase_session_count} {t.purchase_session_count===1?'sesión':'sesiones'}</strong> de <strong>{t.purchase_duration_minutes} min</strong>. HAUT te contactará para concretar la compra y después asignará el tratamiento a tu cuenta.</p>}</div><strong className="purchase-price">{currency(t.base_price)}</strong></div>{(purchaseMessage||openRequest)&&<div className="alert">{purchaseMessage||'Te contactaremos por WhatsApp en máximo 24 horas para concretar la compra.'}</div>}{purchaseError&&<div className="alert error-alert" role="alert">{purchaseError}</div>}{assigned?<Link className="primary-button" href={`/mis-tratamientos/${assigned.id}`}>Ver mi tratamiento <Icon name="forward" size={17}/></Link>:openRequest?<button type="button" className="primary-button" disabled>Solicitud enviada</button>:<button type="button" className="primary-button" onClick={()=>void buy()} disabled={buying}>{buying?'Enviando solicitud…':'Comprar'} <Icon name="arrow" size={17}/></button>}<small>No se realiza ningún cargo automático. HAUT te contactará por WhatsApp para concretar la compra. Cuando recepción la asigne, aparecerá en “Mis tratamientos” sin crear una cita automáticamente.</small></section>}
   <section className="detail-section"><div className="detail-section-heading"><span className="eyebrow">01 · EL TRATAMIENTO</span><h3>Conócelo mejor</h3></div><p>{t.description||'Nuestro equipo puede orientarte sobre los detalles, cuidados y disponibilidad de este tratamiento.'}</p></section>
   {t.recommendations&&<section className="detail-section"><div className="detail-section-heading"><span className="eyebrow">02 · A TENER EN CUENTA</span><h3>Recomendaciones</h3></div><p>{t.recommendations}</p></section>}
   {t.contraindications&&<section className="detail-section"><div className="detail-section-heading"><span className="eyebrow">CUIDADO PERSONALIZADO</span><h3>Consideraciones</h3></div><p>{t.contraindications}</p></section>}

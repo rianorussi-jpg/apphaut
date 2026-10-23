@@ -300,3 +300,6 @@ Para habilitarlo en producción:
 2. Desplegar `supabase/functions/admin-create-client/index.ts` con Verify JWT **activado**.
 3. Volver a desplegar `supabase/functions/process-email-notifications/index.ts` con Verify JWT **desactivado** (lo llama el Cron protegido con `x-haut-worker-secret`).
 4. Opcional pero recomendado: agregar `APP_STORE_URL` y `PLAY_STORE_URL` en Edge Function Secrets. Si todavía no están configuradas, el correo usa `CLIENT_APP_URL` como acceso temporal.
+
+### Solicitudes de compra
+Los tratamientos marcados como **Vender en la app** no realizan cobros automáticos. El botón **Comprar** registra una solicitud; HAUT la gestiona desde **Admin → Compras**, contacta al cliente por WhatsApp y, al concretarse, asigna el tratamiento sin crear una cita inicial.

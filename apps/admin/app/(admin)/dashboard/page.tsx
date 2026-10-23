@@ -93,6 +93,7 @@ export default function DashboardPage() {
           <div className="quick-links">
             <Link href="/agenda"><span className="dashboard-quick-icon"><Icon name="calendar" size={19}/></span><strong>Agenda</strong><span>Consulta horarios y organiza tus citas <Icon name="forward" size={14}/></span></Link>
             <Link href="/clientes"><span className="dashboard-quick-icon"><Icon name="user" size={19}/></span><strong>Clientes</strong><span>Gestiona perfiles y tratamientos <Icon name="forward" size={14}/></span></Link>
+            <Link href="/compras"><span className="dashboard-quick-icon"><Icon name="bag" size={19}/></span><strong>Compras</strong><span>Da seguimiento a solicitudes desde la app <Icon name="forward" size={14}/></span></Link>
             <Link href="/tratamientos"><span className="dashboard-quick-icon"><Icon name="sparkles" size={19}/></span><strong>Tratamientos</strong><span>Administra el catálogo y sus imágenes <Icon name="forward" size={14}/></span></Link>
             <Link href="/sucursales"><span className="dashboard-quick-icon"><Icon name="pin" size={19}/></span><strong>Sucursales</strong><span>Revisa cabinas y recursos <Icon name="forward" size={14}/></span></Link>
             <Link href="/promociones"><span className="dashboard-quick-icon"><Icon name="gift" size={19}/></span><strong>Promociones</strong><span>Gestiona lo que ve el cliente en Inicio <Icon name="forward" size={14}/></span></Link>

@@ -1,9 +1,9 @@
 import { supabase } from './supabase';
-import type {ClientData, Appointment, Session, Plan} from './types';
+import type {ClientData, Appointment, Session, Plan, PurchaseRequest} from './types';
 
 export async function loadClientData(userId:string):Promise<ClientData>{
   if(!supabase) throw new Error('Falta configurar Supabase en Vercel.');
-  const [profile,branches,treatments,categories,plans,appointments,offers,availability] = await Promise.all([
+  const [profile,branches,treatments,categories,plans,appointments,offers,purchaseRequests,availability] = await Promise.all([
     supabase.from('profiles').select('id,full_name,phone,birth_date,preferred_branch_id').eq('id',userId).maybeSingle(),
     supabase.from('branches').select('id,name,slug,phone,address,google_review_url').eq('is_active',true).order('name'),
     supabase.from('treatments').select('id,name,category_id,description,short_description,image_url,base_price,default_duration_minutes,default_session_count,is_featured,is_catalog_visible,is_sold_in_app,is_package,purchase_session_count,purchase_duration_minutes,catalog_details_pending,recommendations,contraindications').eq('is_active',true).order('name'),
@@ -11,9 +11,10 @@ export async function loadClientData(userId:string):Promise<ClientData>{
     supabase.from('client_treatment_plans').select('id,treatment_id,client_id,default_branch_id,total_sessions,status,started_at,recommended_interval_days,created_at').eq('client_id',userId).order('created_at',{ascending:false}),
     supabase.from('appointments').select('id,plan_session_id,branch_id,starts_at,ends_at,status').order('starts_at',{ascending:false}).limit(500),
     supabase.from('promotions').select('id,title,description,image_url,treatment_id,branch_id').order('sort_order').limit(100),
+    supabase.from('treatment_purchase_requests').select('id,user_id,treatment_id,branch_id,plan_id,status,session_count,duration_minutes,quoted_amount,contacted_at,assigned_at,created_at').eq('user_id',userId).order('created_at',{ascending:false}).limit(100),
     supabase.from('treatment_branches').select('treatment_id').eq('is_active',true)
   ]);
-  const results = [profile,branches,treatments,categories,plans,appointments,offers,availability];
+  const results = [profile,branches,treatments,categories,plans,appointments,offers,purchaseRequests,availability];
   const failure=results.find(r=>r.error);
   if(failure?.error)throw new Error(failure.error.message);
   const rawPlans=(plans.data??[]) as Plan[];
@@ -23,7 +24,7 @@ export async function loadClientData(userId:string):Promise<ClientData>{
     if(sr.error)throw new Error(sr.error.message);
     sessions=(sr.data??[]) as Session[];
   }
-  return {profile:profile.data,branches:branches.data??[],treatments:treatments.data??[],categories:categories.data??[],plans:rawPlans,sessions,appointments:(appointments.data??[]) as Appointment[],promotions:offers.data??[],availableTreatmentIds:new Set((availability.data??[]).map(row=>row.treatment_id))};
+  return {profile:profile.data,branches:branches.data??[],treatments:treatments.data??[],categories:categories.data??[],plans:rawPlans,sessions,appointments:(appointments.data??[]) as Appointment[],promotions:offers.data??[],purchaseRequests:(purchaseRequests.data??[]) as PurchaseRequest[],availableTreatmentIds:new Set((availability.data??[]).map(row=>row.treatment_id))};
 }
 
 export const activeAppointment=(a:Appointment)=>['pending','confirmed','arrived'].includes(a.status);

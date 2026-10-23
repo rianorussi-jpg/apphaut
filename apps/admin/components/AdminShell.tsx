@@ -13,6 +13,7 @@ const navigationGroups:{label:string;items:NavigationItem[]}[]=[
     { href: '/agenda', label: 'Agenda', icon: 'calendar' },
     { href: '/citas', label: 'Citas', icon: 'clock' },
     { href: '/clientes', label: 'Clientes', icon: 'user' },
+    { href: '/compras', label: 'Compras', icon: 'bag' },
   ]},
   {label:'GESTIÓN HAUT',items:[
     { href: '/tratamientos', label: 'Tratamientos', icon: 'sparkles' },
@@ -27,6 +28,7 @@ const titles: Record<string, string> = {
   '/agenda': 'Agenda',
   '/citas': 'Citas',
   '/clientes': 'Clientes',
+  '/compras': 'Compras',
   '/promociones': 'Promociones',
   '/tratamientos': 'Tratamientos',
   '/sucursales': 'Sucursales y cabinas',

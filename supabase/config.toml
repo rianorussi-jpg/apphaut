@@ -40,8 +40,3 @@ file_size_limit = "20MiB"
 [functions.process-email-notifications]
 verify_jwt = false
 
-[functions.create-treatment-checkout]
-verify_jwt = true
-
-[functions.mercadopago-treatment-webhook]
-verify_jwt = false

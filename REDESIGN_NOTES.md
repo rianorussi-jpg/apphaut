@@ -37,3 +37,10 @@ El parser de TypeScript pudo comprobar la sintaxis, pero no se pudo completar `n
 ## Fix de build mobile
 - auth-screen ahora incluye google_review_url al cargar sucursales.
 - Branch.google_review_url es opcional para tolerar consultas parciales.
+
+## 2026-10-23 · Compras por seguimiento de HAUT
+- Se retiró el checkout/pago automático de tratamientos.
+- `Vender en la app` ahora crea una solicitud de compra para seguimiento por WhatsApp.
+- Admin incorpora `/compras` con pendientes, contactados y asignados.
+- Asignar una solicitud crea el plan y sus sesiones configuradas, sin crear cita.
+- Paquetes y visibilidad de catálogo conservan su comportamiento previo.
