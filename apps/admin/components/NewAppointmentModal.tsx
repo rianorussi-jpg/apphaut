@@ -31,6 +31,7 @@ type PlanOption = {
   available_session_number:number|null;
   available_session_duration:number|null;
   active_appointment:{id:string;starts_at:string}|null;
+  informative_note:string|null;
 };
 
 export type BookingResult = {
@@ -82,6 +83,7 @@ export default function NewAppointmentModal({
   const [date, setDate] = useState(seed.date);
   const [time, setTime] = useState(seed.time);
   const [notes, setNotes] = useState('');
+  const [newPlanInformativeNote,setNewPlanInformativeNote]=useState('');
   const [newPlanSessions,setNewPlanSessions]=useState('');
   const [durationMinutes,setDurationMinutes]=useState('');
   const [clients, setClients] = useState<Client[]>([]);
@@ -103,6 +105,7 @@ export default function NewAppointmentModal({
     setSelectedPlanId(presetPlanId??'');
     setBookingMode(presetPlanId?'plan':'new');
     setNotes('');
+    setNewPlanInformativeNote('');
     setNewPlanSessions('');
     setDurationMinutes('');
     setError('');
@@ -134,7 +137,7 @@ export default function NewAppointmentModal({
       if(!open||!supabase||!clientId){setPlans([]);return;}
       setLoadingPlans(true);
       const {data:planRows,error:planError}=await supabase.from('client_treatment_plans')
-        .select('id,treatment_id,total_sessions,status,default_branch_id,allow_branch_change,created_at')
+        .select('id,treatment_id,total_sessions,status,default_branch_id,allow_branch_change,informative_note,created_at')
         .eq('client_id',clientId).in('status',['active','paused']).order('created_at',{ascending:false});
       if(planError){setError(planError.message);setLoadingPlans(false);return;}
       const raw=planRows??[];
@@ -163,6 +166,7 @@ export default function NewAppointmentModal({
           available_session_number:ps.find(s=>s.status==='available')?.session_number??null,
           available_session_duration:ps.find(s=>s.status==='available')?.planned_duration_minutes??null,
           active_appointment:activeAppointments.find(a=>ids.has(a.plan_session_id))??null,
+          informative_note:p.informative_note??null,
         };
       });
       setPlans(built);
@@ -214,10 +218,10 @@ export default function NewAppointmentModal({
   function choosePlan(plan:PlanOption){
     const wrongFixedBranch=Boolean(plan.default_branch_id&&!plan.allow_branch_change&&plan.default_branch_id!==branchId);
     if(plan.status!=='active'||plan.active_appointment||plan.available_session_number===null||wrongFixedBranch)return;
-    setBookingMode('plan');setSelectedPlanId(plan.id);setTreatmentId(plan.treatment_id);setDurationMinutes(plan.available_session_duration&&durationOptions.includes(Number(plan.available_session_duration))?String(plan.available_session_duration):'');setNewPlanSessions('');setError('');
+    setBookingMode('plan');setSelectedPlanId(plan.id);setTreatmentId(plan.treatment_id);setDurationMinutes(plan.available_session_duration&&durationOptions.includes(Number(plan.available_session_duration))?String(plan.available_session_duration):'');setNewPlanSessions('');setNewPlanInformativeNote('');setError('');
   }
   function chooseNew(){
-    setBookingMode('new');setSelectedPlanId('');setNewPlanSessions('');setDurationMinutes('');setError('');
+    setBookingMode('new');setSelectedPlanId('');setNewPlanSessions('');setDurationMinutes('');setNewPlanInformativeNote('');setError('');
     const first=newTreatments[0];setTreatmentId(first?.id??'');
   }
 
@@ -234,10 +238,14 @@ export default function NewAppointmentModal({
       p_preferred_cabin_id: preferredCabinApplies ? seed.preferredCabinId ?? null : null,p_internal_notes: notes || null,
       p_total_sessions:bookingMode==='new'?Number(newPlanSessions):null,p_duration_minutes:Number(durationMinutes),
     });
-    setSaving(false);
-    if (bookingError) { setError(bookingError.message.replace(/^.*?: /, '')); return; }
+    if (bookingError) { setSaving(false); setError(bookingError.message.replace(/^.*?: /, '')); return; }
     const booking = Array.isArray(data) ? data[0] : data;
-    if (!booking) { setError('La cita no pudo crearse.'); return; }
+    if (!booking) { setSaving(false); setError('La cita no pudo crearse.'); return; }
+    if(bookingMode==='new'&&newPlanInformativeNote.trim()){
+      const {error:noteError}=await supabase.rpc('admin_set_plan_informative_note',{p_plan_id:booking.plan_id,p_informative_note:newPlanInformativeNote.trim()});
+      if(noteError){setSaving(false);setError(`La cita se creó, pero no se pudo guardar la nota informativa: ${noteError.message}`);return;}
+    }
+    setSaving(false);
     onCreated({...booking,branch_id:branchId} as BookingResult);
   }
 
@@ -271,13 +279,13 @@ export default function NewAppointmentModal({
             </div>
 
             {bookingMode==='plan'&&selectedPlan?<>
-              <div className="selected-plan-summary form-field-wide"><span>Continuar tratamiento</span><strong>{selectedPlan.treatment_name}</strong><small>Sesión {selectedPlan.available_session_number} de {selectedPlan.total_sessions}</small></div>
+              <div className="selected-plan-summary form-field-wide"><span>Continuar tratamiento</span><strong>{selectedPlan.treatment_name}</strong><small>Sesión {selectedPlan.available_session_number} de {selectedPlan.total_sessions}</small></div>{selectedPlan.informative_note?.trim()&&<div className="booking-path-note form-field-wide"><strong>Nota informativa del tratamiento</strong><p style={{whiteSpace:'pre-line',margin:'6px 0 0'}}>{selectedPlan.informative_note.trim()}</p></div>}
               <label className="form-field form-field-wide"><span>Duración de esta cita</span><select value={durationMinutes} onChange={(event)=>setDurationMinutes(event.target.value)} required><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select><small>Se propone la duración definida para este plan. Puedes cambiarla únicamente para esta sesión.</small></label>
             </>:
             <>
               <label className="form-field form-field-wide"><span>Nuevo tratamiento</span><select value={treatmentId} onChange={(event) => {setTreatmentId(event.target.value);setNewPlanSessions('');setDurationMinutes('');}} disabled={loadingOptions || !newTreatments.length}>{!newTreatments.length&&<option value="">No hay otro tratamiento disponible</option>}{newTreatments.map((treatment)=><option key={treatment.id} value={treatment.id}>{treatment.name}</option>)}</select>{selectedTreatment&&<small>Referencia del catálogo: {selectedTreatment.default_session_count} {selectedTreatment.default_session_count===1?'sesión':'sesiones'} · {selectedTreatment.default_duration_minutes} min · puede variar{selectedTreatment.catalog_details_pending?' · ficha pendiente':''}.</small>}</label>
               <div className="booking-plan-config form-field-wide"><span>Sesiones de este plan</span><div className="session-choice-row">{sessionOptions.map(option=><button key={option} type="button" className={newPlanSessions===String(option)?'selected':''} aria-pressed={newPlanSessions===String(option)} onClick={()=>setNewPlanSessions(String(option))}>{option}</button>)}</div></div>
-              <label className="form-field form-field-wide"><span>Duración por cita</span><select value={durationMinutes} onChange={(event)=>setDurationMinutes(event.target.value)} required><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select><small>Esta duración se guardará como base para las sesiones de este cliente.</small></label>
+              <label className="form-field form-field-wide"><span>Duración por cita</span><select value={durationMinutes} onChange={(event)=>setDurationMinutes(event.target.value)} required><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select><small>Esta duración se guardará como base para las sesiones de este cliente.</small></label><label className="form-field form-field-wide"><span>Nota informativa del tratamiento</span><textarea value={newPlanInformativeNote} onChange={event=>setNewPlanInformativeNote(event.target.value)} rows={4} placeholder="Opcional. La verá el cliente y aparecerá al agendar sus siguientes citas."/><small>Es independiente de las notas internas de esta cita y respeta los saltos de línea.</small></label>
             </>}
 
             <label className="form-field"><span>Fecha</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label>

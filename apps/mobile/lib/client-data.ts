@@ -8,7 +8,7 @@ export async function loadClientData(userId:string):Promise<ClientData>{
     supabase.from('branches').select('id,name,slug,phone,address,google_review_url').eq('is_active',true).order('name'),
     supabase.from('treatments').select('id,name,category_id,description,short_description,image_url,base_price,default_duration_minutes,default_session_count,is_featured,is_catalog_visible,is_sold_in_app,is_package,purchase_session_count,purchase_duration_minutes,catalog_details_pending,recommendations,contraindications').eq('is_active',true).order('name'),
     supabase.from('treatment_categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
-    supabase.from('client_treatment_plans').select('id,treatment_id,client_id,default_branch_id,total_sessions,status,started_at,recommended_interval_days,created_at').eq('client_id',userId).order('created_at',{ascending:false}),
+    supabase.from('client_treatment_plans').select('id,treatment_id,client_id,default_branch_id,total_sessions,status,started_at,recommended_interval_days,informative_note,created_at').eq('client_id',userId).order('created_at',{ascending:false}),
     supabase.from('appointments').select('id,plan_session_id,branch_id,starts_at,ends_at,status').order('starts_at',{ascending:false}).limit(500),
     supabase.from('treatment_purchase_requests').select('id,user_id,treatment_id,branch_id,plan_id,status,session_count,duration_minutes,quoted_amount,contacted_at,assigned_at,created_at').eq('user_id',userId).order('created_at',{ascending:false}).limit(100),
     supabase.from('treatment_branches').select('treatment_id').eq('is_active',true)

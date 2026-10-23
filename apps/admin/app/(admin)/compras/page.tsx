@@ -35,6 +35,7 @@ export default function PurchasesPage(){
  const [configuringId,setConfiguringId]=useState<string|null>(null);
  const [draftSessions,setDraftSessions]=useState('');
  const [draftDuration,setDraftDuration]=useState('');
+ const [draftInformativeNote,setDraftInformativeNote]=useState('');
  const [error,setError]=useState('');
  const [success,setSuccess]=useState('');
 
@@ -90,13 +91,10 @@ export default function PurchasesPage(){
 
  function beginAssign(item:PurchaseView){
   setError('');setSuccess('');
-  if(item.session_count&&item.duration_minutes){
-   void assign(item.id);
-   return;
-  }
   setConfiguringId(item.id);
   setDraftSessions(item.session_count?String(item.session_count):'');
   setDraftDuration(item.duration_minutes?String(item.duration_minutes):'');
+  setDraftInformativeNote('');
  }
 
  async function assign(id:string){
@@ -107,10 +105,14 @@ export default function PurchasesPage(){
   const duration=item.duration_minutes??(draftDuration?Number(draftDuration):null);
   if(!sessions||!duration){setError('Define las sesiones y la duración antes de asignar el tratamiento.');return;}
   setWorkingId(id);setError('');setSuccess('');
-  const {error:rpcError}=await supabase.rpc('admin_assign_purchase_request',{p_request_id:id,p_session_count:sessions,p_duration_minutes:duration});
+  const {data:planId,error:rpcError}=await supabase.rpc('admin_assign_purchase_request',{p_request_id:id,p_session_count:sessions,p_duration_minutes:duration});
+  if(rpcError){setWorkingId(null);setError(rpcError.message);return;}
+  if(planId&&draftInformativeNote.trim()){
+   const {error:noteError}=await supabase.rpc('admin_set_plan_informative_note',{p_plan_id:planId,p_informative_note:draftInformativeNote.trim()});
+   if(noteError){setWorkingId(null);setError(`El tratamiento se asignó, pero no se pudo guardar la nota informativa: ${noteError.message}`);await load();return;}
+  }
   setWorkingId(null);
-  if(rpcError){setError(rpcError.message);return;}
-  setConfiguringId(null);setDraftSessions('');setDraftDuration('');
+  setConfiguringId(null);setDraftSessions('');setDraftDuration('');setDraftInformativeNote('');
   setSuccess('Tratamiento asignado correctamente. Ya aparece en Mis tratamientos y no se creó ninguna cita.');
   await load();
  }
@@ -130,7 +132,7 @@ export default function PurchasesPage(){
     {item.status!=='assigned'&&item.status!=='cancelled'&&<button className="primary-button" type="button" onClick={()=>beginAssign(item)} disabled={busy}>{busy?'Asignando…':'Asignar tratamiento'}</button>}
     {item.status==='assigned'&&<span className="purchase-assigned-note"><Icon name="check" size={16}/> Tratamiento asignado</span>}
    </div>
-   {configuringId===item.id&&<div className="purchase-assign-config"><div><strong>Completa el plan antes de asignarlo</strong><p>Estos datos no estaban definidos en la ficha del tratamiento. Solo se piden ahora para crear correctamente el plan del cliente.</p></div>{!item.session_count&&<div className="plan-config-field"><span>Sesiones del plan</span><div className="session-choice-row">{sessionOptions.map(option=><button key={option} type="button" className={draftSessions===String(option)?'selected':''} onClick={()=>setDraftSessions(String(option))}>{option}</button>)}</div></div>}{!item.duration_minutes&&<label className="form-field">Duración por sesión<select value={draftDuration} onChange={e=>setDraftDuration(e.target.value)}><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select></label>}<div className="purchase-assign-config-actions"><button type="button" className="secondary-button" onClick={()=>{setConfiguringId(null);setDraftSessions('');setDraftDuration('');}}>Cancelar</button><button type="button" className="primary-button" disabled={busy||(!item.session_count&&!draftSessions)||(!item.duration_minutes&&!draftDuration)} onClick={()=>void assign(item.id)}>{busy?'Asignando…':'Confirmar y asignar'}</button></div></div>}
+   {configuringId===item.id&&<div className="purchase-assign-config"><div><strong>Asignar tratamiento</strong><p>{!item.session_count||!item.duration_minutes?'Completa los datos pendientes y, si quieres, agrega una nota informativa para el cliente.':'Puedes agregar una nota informativa opcional antes de crear el plan del cliente.'}</p></div>{!item.session_count&&<div className="plan-config-field"><span>Sesiones del plan</span><div className="session-choice-row">{sessionOptions.map(option=><button key={option} type="button" className={draftSessions===String(option)?'selected':''} onClick={()=>setDraftSessions(String(option))}>{option}</button>)}</div></div>}{!item.duration_minutes&&<label className="form-field">Duración por sesión<select value={draftDuration} onChange={e=>setDraftDuration(e.target.value)}><option value="">Selecciona duración</option>{durationOptions.map(option=><option key={option} value={option}>{option} minutos</option>)}</select></label>}<label className="form-field form-field-wide"><span>Nota informativa</span><textarea value={draftInformativeNote} onChange={e=>setDraftInformativeNote(e.target.value)} rows={4} placeholder="Opcional. La verá el cliente en Mi tratamiento y recepción al crear sus siguientes citas."/><small>Es independiente de las notas internas y respeta los saltos de línea.</small></label><div className="purchase-assign-config-actions"><button type="button" className="secondary-button" onClick={()=>{setConfiguringId(null);setDraftSessions('');setDraftDuration('');setDraftInformativeNote('');}}>Cancelar</button><button type="button" className="primary-button" disabled={busy||(!item.session_count&&!draftSessions)||(!item.duration_minutes&&!draftDuration)} onClick={()=>void assign(item.id)}>{busy?'Asignando…':'Confirmar y asignar'}</button></div></div>}
   </article>;
  }
 
