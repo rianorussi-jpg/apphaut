@@ -21,7 +21,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
  const [name,setName]=useState(treatment?.name??'');
  const [description,setDescription]=useState(treatment?.description??treatment?.short_description??'');
  const [categoryId,setCategoryId]=useState(treatment?.category_id??'');
- const [price,setPrice]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.base_price):'');
+ const [price,setPrice]=useState(treatment&&Number(treatment.base_price)>0?String(treatment.base_price):'');
  const [duration,setDuration]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.default_duration_minutes):'');
  const [sessions,setSessions]=useState(treatment?.catalog_details_pending?'':treatment?String(treatment.default_session_count):'');
  const [interval,setInterval]=useState(treatment?.recommended_interval_days==null?'':String(treatment.recommended_interval_days));
@@ -79,7 +79,6 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
   if(sessions!==''&&(!Number.isInteger(Number(sessions))||Number(sessions)<1)){setError('El número de sesiones debe ser un entero mayor a 0.');return;}
   if(interval!==''&&(!Number.isInteger(Number(interval))||Number(interval)<0)){setError('El intervalo recomendado debe ser un entero mayor o igual a 0.');return;}
   if(soldInApp){
-   if(price===''||Number(price)<=0){setError('Para venderlo en la app agrega un precio mayor a $0.');return;}
    if(!['1','3','5','8','10'].includes(purchaseSessions)){setError('Selecciona cuántas sesiones incluye la compra.');return;}
    if(!['15','30','45','60','85'].includes(purchaseDuration)){setError('Selecciona la duración por sesión de la compra.');return;}
   }
@@ -94,13 +93,13 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
      if(upload.error)throw new Error(`No se pudo subir la imagen: ${upload.error.message}. Verifica el bucket treatment-images y sus políticas.`);
      finalImageUrl=supabase.storage.from('treatment-images').getPublicUrl(path).data.publicUrl;
    }
-   const detailsPending=price===''||duration===''||sessions==='';
+   const detailsPending=duration===''||sessions==='';
    const payload={
      name:name.trim(),short_description:description.trim()||null,description:description.trim()||null,
      category_id:categoryId||null,
      // La base conserva valores técnicos válidos mientras la ficha esté pendiente.
      // Mobile los trata como datos informativos pendientes; la agenda usa la configuración individual del plan.
-     base_price:price===''?(treatment?Number(treatment.base_price):0):Number(price),
+     base_price:price===''?0:Number(price),
      default_duration_minutes:duration===''?(treatment?Number(treatment.default_duration_minutes):60):Number(duration),
      default_session_count:sessions===''?(treatment?Number(treatment.default_session_count):1):Number(sessions),
      recommended_interval_days:interval===''?null:Number(interval),
@@ -191,7 +190,7 @@ export default function TreatmentEditor({treatment,categories,branches,cabins,on
        {soldInApp&&<div className="editor-sale-config">
         <label className="form-field">Sesiones incluidas<select value={purchaseSessions} onChange={e=>setPurchaseSessions(e.target.value)}><option value="">Selecciona</option>{[1,3,5,8,10].map(value=><option key={value} value={value}>{value} {value===1?'sesión':'sesiones'}</option>)}</select></label>
         <label className="form-field">Duración por sesión<select value={purchaseDuration} onChange={e=>setPurchaseDuration(e.target.value)}><option value="">Selecciona</option>{[15,30,45,60,85].map(value=><option key={value} value={value}>{value} minutos</option>)}</select></label>
-        <small className="muted">Estos valores definen el plan que recepción asignará después de concretar la compra con el cliente. Son independientes de las sesiones y duración informativas del catálogo.</small>
+        <small className="muted">Estos valores definen el plan que recepción asignará después de concretar la compra con el cliente. El precio base puede dejarse vacío; en ese caso no se mostrará ningún precio en la app y HAUT lo concretará por WhatsApp.</small>
        </div>}
        <label className="editor-toggle"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/><span><strong>Tratamiento activo</strong><small>Disponible operativamente para asignaciones, agenda y planes. Desactívalo solo si HAUT deja de ofrecerlo.</small></span></label>
       </div>

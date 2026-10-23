@@ -98,7 +98,7 @@ export default function PurchasesPage(){
   const busy=workingId===item.id;
   return <article className="purchase-request-card">
    <div className="purchase-request-main">
-    <div className="purchase-request-heading"><div><span className={`purchase-state purchase-${item.status}`}>{item.status==='pending'?'Pendiente de contacto':item.status==='contacted'?'Contactado':item.status==='assigned'?'Asignado':'Cancelado'}</span><h3>{item.clientName}</h3></div><strong>{money(item.quoted_amount)}</strong></div>
+    <div className="purchase-request-heading"><div><span className={`purchase-state purchase-${item.status}`}>{item.status==='pending'?'Pendiente de contacto':item.status==='contacted'?'Contactado':item.status==='assigned'?'Asignado':'Cancelado'}</span><h3>{item.clientName}</h3></div>{Number(item.quoted_amount)>0&&<strong>{money(item.quoted_amount)}</strong>}</div>
     <div className="purchase-request-treatment"><span className="purchase-request-icon"><Icon name="sparkles" size={18}/></span><div><strong>{item.treatmentName}</strong><span>{item.session_count} {item.session_count===1?'sesión':'sesiones'} · {item.duration_minutes} min por sesión</span></div></div>
     <div className="purchase-request-meta"><span><b>Sucursal</b>{item.branchName}</span><span><b>Teléfono</b>{item.clientPhone||'Sin teléfono'}</span><span><b>Solicitud</b>{dateTime(item.created_at)}</span>{item.contacted_at&&<span><b>Contactado</b>{dateTime(item.contacted_at)}</span>}</div>
    </div>
