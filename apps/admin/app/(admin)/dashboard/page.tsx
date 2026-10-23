@@ -96,7 +96,6 @@ export default function DashboardPage() {
             <Link href="/compras"><span className="dashboard-quick-icon"><Icon name="bag" size={19}/></span><strong>Compras</strong><span>Da seguimiento a solicitudes desde la app <Icon name="forward" size={14}/></span></Link>
             <Link href="/tratamientos"><span className="dashboard-quick-icon"><Icon name="sparkles" size={19}/></span><strong>Tratamientos</strong><span>Administra el catálogo y sus imágenes <Icon name="forward" size={14}/></span></Link>
             <Link href="/sucursales"><span className="dashboard-quick-icon"><Icon name="pin" size={19}/></span><strong>Sucursales</strong><span>Revisa cabinas y recursos <Icon name="forward" size={14}/></span></Link>
-            <Link href="/promociones"><span className="dashboard-quick-icon"><Icon name="gift" size={19}/></span><strong>Promociones</strong><span>Gestiona lo que ve el cliente en Inicio <Icon name="forward" size={14}/></span></Link>
             <Link href="/horarios"><span className="dashboard-quick-icon"><Icon name="sliders" size={19}/></span><strong>Horarios</strong><span>Consulta la operación semanal por sucursal <Icon name="forward" size={14}/></span></Link>
           </div>
         </section>

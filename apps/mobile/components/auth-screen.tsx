@@ -89,7 +89,7 @@ export function AuthScreen({error:initialError=''}:{error?:string}){
   return <main className="auth-wrap"><section className="auth-card">
     <img className="auth-logo" src="/logo.png" alt="HAUT Clinical Center"/>
     <h1>Tu espacio Haut</h1>
-    <p className="subtle auth-copy">Consulta tus tratamientos, próximas citas, promociones y beneficios.</p>
+    <p className="subtle auth-copy">Consulta tus tratamientos, próximas citas y paquetes disponibles.</p>
     <form onSubmit={e=>{e.preventDefault();void sendCode();}} className="auth-form email-only-form">
       <label>Correo
         <input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.com" autoFocus/>

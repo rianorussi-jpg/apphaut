@@ -17,7 +17,6 @@ const navigationGroups:{label:string;items:NavigationItem[]}[]=[
   ]},
   {label:'GESTIÓN HAUT',items:[
     { href: '/tratamientos', label: 'Tratamientos', icon: 'sparkles' },
-    { href: '/promociones', label: 'Promociones', icon: 'gift' },
     { href: '/sucursales', label: 'Sucursales y cabinas', icon: 'pin' },
     { href: '/horarios', label: 'Horarios', icon: 'sliders' },
   ]},
@@ -29,7 +28,6 @@ const titles: Record<string, string> = {
   '/citas': 'Citas',
   '/clientes': 'Clientes',
   '/compras': 'Compras',
-  '/promociones': 'Promociones',
   '/tratamientos': 'Tratamientos',
   '/sucursales': 'Sucursales y cabinas',
   '/horarios': 'Horarios',

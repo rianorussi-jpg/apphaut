@@ -14,12 +14,12 @@ export default function HomePage(){const {data}=useClient();
  const activePlans=data.plans.filter(p=>p.status==='active'||p.status==='paused');
  const packages=data.treatments.filter(t=>t.is_package);
  return <MobileShell title={`Hola, ${(data.profile?.full_name||'').split(' ')[0]||'bienvenida'}`} eyebrow="TU EXPERIENCIA HAUT">
- <PromotionCarousel promotions={data.promotions}/>
+ <PromotionCarousel packages={packages}/>
  <div className="section-title"><div><small>TU SEGUIMIENTO</small><h2>Mis tratamientos</h2></div><Link href="/mis-tratamientos">Ver todos <Icon name="forward" size={15}/></Link></div>
  {activePlans.length?activePlans.slice(0,2).map(p=><PlanCard key={p.id} d={data} plan={p}/>):<div className="empty-feature compact"><h3>Un plan diseñado para ti.</h3><p>Tus tratamientos asignados por Haut aparecerán aquí junto con el avance de cada sesión.</p><Link className="text-cta" href="/tratamientos">Conocer tratamientos <Icon name="arrow" size={16}/></Link></div>}
  <div className="section-title"><div><small>AGENDA PERSONAL</small><h2>Tu próxima cita</h2></div><Link href="/mis-citas">Ver agenda <Icon name="forward" size={15}/></Link></div>
  {next?<Link href={`/mis-citas/${next.id}`} className="next-appointment-hero"><span className="next-appointment-icon"><Icon name="calendar" size={25}/></span><div><span className="eyebrow">PRÓXIMA VISITA · {nextPlan&&nextPlan.total_sessions>1?`SESIÓN ${sessionFor(data,next)?.session_number} DE ${nextPlan.total_sessions}`:'HAUT CLINICAL'}</span><h3>{nextTreatment?.name??'Tratamiento'}</h3><p><Icon name="clock" size={15}/> {dateLabel(next.starts_at,true)}</p><p><Icon name="pin" size={15}/> Haut {data.branches.find(b=>b.id===next.branch_id)?.name??'Sucursal'}</p></div><span className="next-appointment-arrow"><Icon name="arrow" size={19}/></span></Link>:<div className="empty-feature"><div className="empty-feature-icon"><Icon name="calendar" size={26}/></div><h3>Tu próxima visita, aquí.</h3><p>Cuando recepción programe una cita para ti, podrás consultar todos los detalles en este espacio.</p></div>}
- <div className="section-title"><div><small>SELECCIÓN HAUT</small><h2>Paquetes</h2></div></div>
+ <div className="section-title" id="paquetes"><div><small>SELECCIÓN HAUT</small><h2>Paquetes</h2></div></div>
  {packages.length?<div className="catalog-grid">{packages.slice(0,4).map(t=><TreatmentTile key={t.id} treatment={t}/>)}</div>:<div className="empty-card">Los paquetes de HAUT aparecerán aquí cuando estén disponibles.</div>}
  </MobileShell>
 }
