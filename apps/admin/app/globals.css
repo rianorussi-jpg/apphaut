@@ -83,3 +83,33 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 /* Cupón de bienvenida en solicitudes de compra */
 .purchase-coupon-notice{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--gold-300);border-radius:12px;background:linear-gradient(120deg,var(--gold-100),var(--white));color:var(--gold-900)}.purchase-coupon-notice.is-cancelled{opacity:.72;background:var(--cream)}.purchase-coupon-icon{width:34px;height:34px;flex:0 0 34px;border-radius:10px;display:grid;place-items:center;background:var(--gold-200);color:var(--gold-800)}.purchase-coupon-notice>div{display:grid;gap:3px}.purchase-coupon-notice strong{font-size:11px}.purchase-coupon-notice span{font-size:10px;line-height:1.45;color:var(--muted)}.purchase-coupon-price{display:grid;justify-items:end;gap:2px;white-space:nowrap}.purchase-coupon-price span{text-decoration:line-through;color:var(--muted);font-size:10px}.purchase-coupon-price strong{font:normal 20px Georgia,serif;color:var(--gold-900)}.purchase-cancel-button{min-height:40px;border-radius:999px;padding:0 14px;border:1px solid #d8b9b2;background:#fff7f5;color:#845047;font-size:11px;font-weight:800;cursor:pointer}.purchase-cancel-button:hover{background:#f8e9e5}.purchase-cancel-button:disabled{opacity:.55;cursor:default}.purchase-cancelled-note{display:flex;justify-content:center;padding:9px;color:#845047;font-size:11px;font-weight:700}
 @media(max-width:650px){.purchase-coupon-price{justify-items:start}}
+
+/* Clientes · alta de tratamientos ya iniciados */
+.legacy-treatment-check{display:flex!important;align-items:flex-start;gap:11px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--cream);text-transform:none!important;letter-spacing:0!important;color:var(--ink)!important;cursor:pointer}.legacy-treatment-check input{width:18px!important;height:18px;margin:1px 0 0;flex:0 0 18px;accent-color:var(--gold-800)}.legacy-treatment-check>span{display:grid;gap:4px}.legacy-treatment-check strong{font-size:12px}.legacy-treatment-check small{font-size:10px;font-weight:400;line-height:1.45;color:var(--muted);text-transform:none;letter-spacing:0}.legacy-session-progress{padding:13px 14px;border:1px solid var(--gold-300);border-radius:12px;background:var(--gold-100)}.legacy-session-progress>.muted{font-size:10px;margin:0}
+
+/* iPad · agenda más cómoda y controles sin zoom al enfocar */
+@media (min-width:801px) and (max-width:1180px){
+  .admin-shell{grid-template-columns:210px minmax(0,1fr)}
+  .sidebar{padding:24px 16px}
+  .content{padding:24px 20px}
+  .agenda-page .agenda-toolbar{display:grid;grid-template-columns:minmax(200px,1fr) minmax(300px,1.25fr);gap:12px 14px;align-items:end}
+  .agenda-page .agenda-toolbar>.field-group{min-width:0}
+  .agenda-page .agenda-toolbar>.segmented{justify-self:start}
+  .agenda-page .agenda-toolbar>.inline-button{justify-self:end;align-self:center}
+  .agenda-page .date-controls{justify-content:flex-end;min-width:0}
+  .agenda-page .date-controls input{min-width:150px;flex:1}
+  .agenda-page .calendar-card{padding:16px}
+  .agenda-page .calendar-title{align-items:flex-start;gap:14px}
+  .agenda-page .calendar-title h2{font-size:23px}
+  .agenda-page .calendar-title>span{max-width:280px;text-align:right;line-height:1.4}
+  .agenda-page .calendar-header,.agenda-page .calendar-body{font-size:11px}
+  .agenda-page .week-grid{grid-template-columns:repeat(7,132px)}
+  .agenda-page .week-day{min-height:220px}
+  input,select,textarea{font-size:16px!important}
+}
+
+@media (max-width:800px){
+  input,select,textarea{font-size:16px!important}
+  .agenda-page .calendar-title{align-items:flex-start;flex-direction:column}
+  .agenda-page .calendar-title>span{text-align:left}
+}

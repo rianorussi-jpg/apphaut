@@ -102,7 +102,7 @@ export default function AgendaPage() {
   }
 
   return (
-    <section className="page-stack">
+    <section className="page-stack agenda-page">
       <div className="toolbar-card agenda-toolbar">
         <div className="field-group"><label>Sucursal</label><select value={branchId} onChange={(e)=>setBranchId(e.target.value)}><option value="">Selecciona sucursal</option>{branches.map((branch)=><option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>
         <div className="date-controls"><button className="icon-button" onClick={()=>move(-1)}>‹</button><input type="date" value={inputDate(selectedDate)} onChange={(e)=>{const [y,m,d]=e.target.value.split('-').map(Number); setSelectedDate(new Date(y,m-1,d));}}/><button className="icon-button" onClick={()=>move(1)}>›</button><button className="secondary-button" onClick={()=>setSelectedDate(new Date())}>Hoy</button></div>
