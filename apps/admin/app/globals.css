@@ -157,3 +157,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
  .client-search-bar input{flex:auto;width:100%}
  .booking-modal,.treatment-editor{max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
 }
+
+/* Filtros de sucursal en el directorio de clientes */
+.client-branch-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.client-branch-filters button{border:1px solid var(--line,#e5e7eb);border-radius:999px;background:var(--surface,#fff);color:inherit;padding:10px 16px;min-height:42px;font:inherit;font-size:14px;cursor:pointer;transition:background .15s,border-color .15s}
+.client-branch-filters button.active{background:#262424;color:white;border-color:#262424}
+.client-branch-filters button:focus-visible{outline:3px solid #ba9d75;outline-offset:2px}
+.client-branch-label{font-weight:650}
+@media(max-width:650px){.client-branch-filters{gap:8px}.client-branch-filters button{padding:9px 12px;font-size:13px}}

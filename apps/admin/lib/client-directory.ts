@@ -1,8 +1,8 @@
 import {supabase} from './supabase';
 
-export type BookingClient = {id:string;full_name:string;phone:string|null;email:string|null;birth_date:string|null};
+export type BookingClient = {id:string;full_name:string;phone:string|null;email:string|null;birth_date:string|null;preferred_branch_id:string|null};
 
-type BookingClientRow = Omit<BookingClient,'birth_date'>;
+type BookingClientRow = Omit<BookingClient,'birth_date'|'preferred_branch_id'>;
 
 /**
  * Fuente de verdad para agenda y directorio.
@@ -24,8 +24,9 @@ export async function fetchBookingClients(branchId?:string|null): Promise<Bookin
   }
   const rows=(data??[]) as BookingClientRow[];
   if(!rows.length)return [];
-  const profiles=await supabase.from('profiles').select('id,birth_date').in('id',rows.map(row=>row.id));
+  const profiles=await supabase.from('profiles').select('id,birth_date,preferred_branch_id').in('id',rows.map(row=>row.id));
   if(profiles.error)throw new Error(`No se pudo consultar la fecha de nacimiento de los clientes: ${profiles.error.message}`);
   const birthDates=new Map((profiles.data??[]).map(row=>[row.id,row.birth_date as string|null]));
-  return rows.map(row=>({...row,birth_date:birthDates.get(row.id)??null}));
+  const profileBranches=new Map((profiles.data??[]).map(row=>[row.id,row.preferred_branch_id as string|null]));
+  return rows.map(row=>({...row,birth_date:birthDates.get(row.id)??null,preferred_branch_id:profileBranches.get(row.id)??null}));
 }
