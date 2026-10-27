@@ -33,6 +33,7 @@ function whatsappHref(phone:string|null,name:string,treatment:string){
 export default function PurchasesPage(){
  const [items,setItems]=useState<PurchaseView[]>([]);
  const [loading,setLoading]=useState(true);
+ const [pendingBranchFilter,setPendingBranchFilter]=useState<'all'|'zibata'|'alamos'|'centro sur'>('all');
  const [workingId,setWorkingId]=useState<string|null>(null);
  const [configuringId,setConfiguringId]=useState<string|null>(null);
  const [draftSessions,setDraftSessions]=useState('');
@@ -78,6 +79,7 @@ export default function PurchasesPage(){
  useEffect(()=>{void load();const timer=window.setInterval(()=>void load(),30000);return()=>window.clearInterval(timer);},[load]);
 
  const pending=useMemo(()=>items.filter(i=>i.status==='pending'),[items]);
+ const filteredPending=useMemo(()=>pending.filter(item=>pendingBranchFilter==='all'||item.branchName.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase()===pendingBranchFilter),[pending,pendingBranchFilter]);
  const contacted=useMemo(()=>items.filter(i=>i.status==='contacted'),[items]);
  const assigned=useMemo(()=>items.filter(i=>i.status==='assigned'),[items]);
  const cancelled=useMemo(()=>items.filter(i=>i.status==='cancelled'),[items]);
@@ -164,7 +166,9 @@ export default function PurchasesPage(){
   {success&&<div className="alert">{success}</div>}
   <section className="stats purchase-stats"><article><span>Pendientes de contacto</span><strong>{loading?'—':pending.length}</strong><small>Necesitan mensaje</small></article><article><span>Contactados</span><strong>{loading?'—':contacted.length}</strong><small>En seguimiento</small></article><article><span>Asignados</span><strong>{loading?'—':assigned.length}</strong><small>Compra concretada</small></article><article><span>Canceladas</span><strong>{loading?'—':cancelled.length}</strong><small>No se concretaron</small></article></section>
   {loading?<div className="fullscreen-inline"><div className="spinner"/></div>:<>
-   <section className="panel-card"><div className="section-heading"><div><p className="eyebrow">Por atender</p><h3>Pendientes de enviar mensaje</h3></div><span className="purchase-count-pill">{pending.length}</span></div>{pending.length?<div className="purchase-request-list">{pending.map(item=><RequestCard key={item.id} item={item}/>)}</div>:<div className="empty-state"><strong>No hay compras pendientes de contacto.</strong><span>Las nuevas solicitudes aparecerán aquí automáticamente.</span></div>}</section>
+   <section className="panel-card"><div className="section-heading"><div><p className="eyebrow">Por atender</p><h3>Pendientes de enviar mensaje</h3></div><span className="purchase-count-pill">{filteredPending.length}</span></div>
+   <div className="client-branch-filters" role="group" aria-label="Filtrar compras pendientes por sucursal">{([{value:'all',label:'Todos'},{value:'zibata',label:'Zibatá'},{value:'alamos',label:'Álamos'},{value:'centro sur',label:'Centro Sur'}] as const).map(option=><button key={option.value} type="button" className={pendingBranchFilter===option.value?'active':''} aria-pressed={pendingBranchFilter===option.value} onClick={()=>setPendingBranchFilter(option.value)}>{option.label}</button>)}</div>
+   {filteredPending.length?<div className="purchase-request-list">{filteredPending.map(item=><RequestCard key={item.id} item={item}/>)}</div>:<div className="empty-state"><strong>{pending.length?'No hay compras pendientes en esta sucursal.':'No hay compras pendientes de contacto.'}</strong><span>{pending.length?'Selecciona otra sucursal o Todos para ver las demás solicitudes.':'Las nuevas solicitudes aparecerán aquí automáticamente.'}</span></div>}</section>
    <section className="panel-card"><div className="section-heading"><div><p className="eyebrow">Seguimiento</p><h3>Contactados</h3></div><span className="purchase-count-pill">{contacted.length}</span></div>{contacted.length?<div className="purchase-request-list">{contacted.map(item=><RequestCard key={item.id} item={item}/>)}</div>:<div className="empty-state"><strong>No hay solicitudes en seguimiento.</strong></div>}</section>
    <section className="panel-card"><div className="section-heading"><div><p className="eyebrow">Historial</p><h3>Tratamientos asignados</h3></div><span className="purchase-count-pill">{assigned.length}</span></div>{assigned.length?<div className="purchase-request-list compact-purchase-history">{assigned.map(item=><RequestCard key={item.id} item={item}/>)}</div>:<div className="empty-state"><strong>Todavía no hay compras asignadas.</strong></div>}</section>
    <section className="panel-card"><div className="section-heading"><div><p className="eyebrow">Historial</p><h3>Compras canceladas</h3></div><span className="purchase-count-pill">{cancelled.length}</span></div>{cancelled.length?<div className="purchase-request-list compact-purchase-history">{cancelled.map(item=><RequestCard key={item.id} item={item}/>)}</div>:<div className="empty-state"><strong>No hay compras canceladas.</strong></div>}</section>
