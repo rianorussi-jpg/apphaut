@@ -113,3 +113,47 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   .agenda-page .calendar-title{align-items:flex-start;flex-direction:column}
   .agenda-page .calendar-title>span{text-align:left}
 }
+
+/* HAUT — iPad horizontal y vertical; mantener el contenido utilizable sin ampliar la página */
+.admin-shell,.content,.page-stack,.panel-card,.calendar-card,.agenda-page{min-width:0}
+.client-search-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:16px 18px;border:1px solid var(--line);border-radius:15px;background:var(--card)}
+.client-search-bar label{font-size:12px;font-weight:700;white-space:nowrap}
+.client-search-bar input{flex:1 1 240px;min-width:0;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink)}
+.client-search-bar small{color:var(--muted);font-size:11px;white-space:nowrap}
+.editor-check-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.editor-check{min-width:0;min-height:48px;gap:12px;padding:12px 14px;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.editor-check input[type=checkbox],.editor-toggle input[type=checkbox]{appearance:auto!important;-webkit-appearance:checkbox!important;display:block!important;width:21px!important;height:21px!important;min-width:21px!important;min-height:21px!important;max-width:21px!important;max-height:21px!important;flex:0 0 21px!important;margin:0!important;padding:0!important;border:initial!important;accent-color:var(--gold-800);cursor:pointer}
+.editor-toggle{align-items:flex-start;gap:13px;min-height:44px}
+.editor-toggle input[type=checkbox]{margin-top:2px!important}
+.booking-form-grid>*{min-width:0}
+@media (min-width:801px) and (max-width:1366px){
+ .admin-shell{grid-template-columns:clamp(190px,18vw,232px) minmax(0,1fr)}
+ .sidebar{width:auto;min-width:0;padding:22px 13px}
+ .content{width:100%;max-width:none;padding:20px clamp(16px,2.1vw,28px)}
+ .page-heading{flex-wrap:wrap;gap:12px}
+ .agenda-page .agenda-toolbar{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:14px}
+ .agenda-page .agenda-toolbar>*{min-width:0;flex:1 1 200px}
+ .agenda-page .agenda-toolbar>.inline-button{width:auto;flex:0 1 auto;margin-left:auto}
+ .agenda-page .date-controls{flex-wrap:wrap;gap:8px;justify-content:flex-start}
+ .agenda-page .calendar-card{min-width:0;padding:14px}
+ .agenda-page .calendar-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+ .agenda-page .calendar-title{flex-wrap:wrap;gap:10px}
+ .agenda-page .calendar-title>span{max-width:none;text-align:left}
+ .agenda-page .week-grid{grid-template-columns:repeat(7,minmax(132px,1fr))}
+ .card-grid.three-cols{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .treatment-editor,.booking-modal{max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+ .treatment-editor-content{padding:20px}
+ .editor-check-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (min-width:801px) and (orientation:landscape) and (max-height:850px){
+ .booking-modal,.treatment-editor{max-height:calc(100dvh - 24px)}
+ .agenda-page .calendar-card{padding:12px}
+ .agenda-page .agenda-toolbar{padding:12px}
+}
+@media (max-width:800px){
+ .editor-check-grid{grid-template-columns:1fr}
+ .editor-check{min-height:48px}
+ .client-search-bar{align-items:stretch;flex-direction:column}
+ .client-search-bar input{flex:auto;width:100%}
+ .booking-modal,.treatment-editor{max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
+}

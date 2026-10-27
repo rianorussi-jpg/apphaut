@@ -78,6 +78,7 @@ export default function NewAppointmentModal({
   onCreated: (booking: BookingResult) => void;
 }) {
   const [clientId, setClientId] = useState('');
+  const [clientSearch,setClientSearch]=useState('');
   const [treatmentId, setTreatmentId] = useState('');
   const [branchId, setBranchId] = useState(seed.branchId);
   const [date, setDate] = useState(seed.date);
@@ -105,6 +106,7 @@ export default function NewAppointmentModal({
     setSelectedPlanId(presetPlanId??'');
     setBookingMode(presetPlanId?'plan':'new');
     setNotes('');
+    setClientSearch('');
     setNewPlanInformativeNote('');
     setNewPlanSessions('');
     setDurationMinutes('');
@@ -249,6 +251,8 @@ export default function NewAppointmentModal({
     onCreated({...booking,branch_id:branchId} as BookingResult);
   }
 
+  const filteredClients=clients.filter(client=>{const query=clientSearch.trim().toLocaleLowerCase('es-MX');const digits=query.replace(/\D/g,'');return !query||[client.full_name,client.phone,client.email].some(value=>value?.toLocaleLowerCase('es-MX').includes(query))||(digits.length>=3&&client.phone?.replace(/\D/g,'').includes(digits));});
+
   if (!open) return null;
 
   return (
@@ -259,7 +263,8 @@ export default function NewAppointmentModal({
           <div className="booking-form-grid">
             <div className="selected-plan-summary form-field-wide"><span>Sucursal</span><strong>{selectedBranch?.name??'Sucursal seleccionada'}</strong></div>
 
-            <label className="form-field form-field-wide"><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)} disabled={loadingOptions || !clients.length}>{!clients.length&&<option value="">No hay clientes de esta sucursal</option>}{clients.map((client)=><option key={client.id} value={client.id}>{client.full_name}{client.phone?` · ${client.phone}`:client.email?` · ${client.email}`:''}</option>)}</select>{!clients.length&&!loadingOptions&&<small>Solo aparecen clientes vinculados a {selectedBranch?.name??'esta sucursal'}.</small>}</label>
+            <label className="form-field form-field-wide"><span>Buscar cliente por nombre o teléfono</span><input type="search" value={clientSearch} onChange={event=>setClientSearch(event.target.value)} autoComplete="off" placeholder="Escribe el nombre o número del cliente…"/></label>
+            <label className="form-field form-field-wide"><span>Cliente</span><select value={clientId} onChange={(event) => setClientId(event.target.value)} disabled={loadingOptions || !clients.length}>{!clients.length&&<option value="">No hay clientes de esta sucursal</option>}{filteredClients.length===0&&clientSearch.trim()&&<option value="" disabled>No se encontraron coincidencias</option>}{clientId&&!filteredClients.some(client=>client.id===clientId)&&clients.filter(client=>client.id===clientId).map(client=><option key={client.id} value={client.id}>{client.full_name} (seleccionado)</option>)}{filteredClients.map((client)=><option key={client.id} value={client.id}>{client.full_name}{client.phone?` · ${client.phone}`:client.email?` · ${client.email}`:''}</option>)}</select>{!clients.length&&!loadingOptions&&<small>Solo aparecen clientes vinculados a {selectedBranch?.name??'esta sucursal'}.</small>}</label>
 
             <div className="form-field form-field-wide"><span>¿Qué deseas agendar?</span>
               <div className="booking-path-list">
